@@ -1,12 +1,15 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { createPool } from 'mysql2/promise';
 
 
 const pool = createPool({
-    user: process.env.MYSQL_USER as string,
-    password: process.env.MYSQL_PASSWORD as string,
-    database: process.env.MYSQL_DATABASE as string,
-    host: process.env.MYSQL_HOST as string,
-    port: parseInt(process.env.MYSQL_PORT as string),
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE,
+    port: Number(process.env.MYSQL_PORT) || 3306,
     timezone: "+00:00",
 });
 

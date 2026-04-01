@@ -1,0 +1,47 @@
+import type { NextFunction, Request, Response } from "express";
+import db from "../database/db";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+interface UserRow {
+    id: number;
+    email: string;
+    password: string;
+    role_id: number;
+    role: string;
+    type: 'client' | 'employee';
+}
+
+export const login = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || typeof (email) !== 'string' || !password || typeof (password) !== 'string') {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+
+        const [user_email] = await db.query('SELECT u.id, u.email, u.password, u.role_id, r.rol as role, u.type FROM users u JOIN Roles r ON u.role_id = r.id WHERE u.email = ?', [email]) as [UserRow[], any];
+
+        if (!user_email || user_email.length === 0) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        const user_pwd = await bcrypt.compare(password, user_email[0]!.password);
+
+        if (!user_pwd) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        const jwtSecret = process.env.JWT_SECRET as string;
+        const token = jwt.sign({ id: user_email[0]!.id, role_id: user_email[0]!.role_id, role: user_email[0]!.role, type: user_email[0]!.type }, jwtSecret, { expiresIn: '7d' });
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días en ms
+        });
+        return res.status(200).json({ message: 'Login successful' });
+
+    } catch (error) {
+        next(error);
+    }
+};

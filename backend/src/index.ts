@@ -1,18 +1,27 @@
 import express from 'express';
 import dotenv from 'dotenv';
+dotenv.config();
+
 import cors from 'cors';
 import pool from './database/db';
+import authRoutes from './routes/auth.routes';
+import cookieParser from 'cookie-parser';
 
-dotenv.config();
+
 
 const app = express();
 
 app.use(express.json());
 
+
+app.use(cookieParser());
+
 app.use(cors({
     origin: process.env.ORIGIN,
     credentials: true,
 }))
+
+app.use('/auth', authRoutes);
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
@@ -20,7 +29,7 @@ app.get('/health', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-async function testDatabaseConnection() {
+async function bootstrap() {
     await pool.query('SELECT 1');
     console.log('Database connection successful');
 
@@ -29,10 +38,12 @@ async function testDatabaseConnection() {
     });
 };
 
-testDatabaseConnection().catch((err) => {
-    console.error('Database connection failed:', err);
+bootstrap().catch((err) => {
+    console.error('Failed to bootstrap the application:', err);
     process.exit(1);
 });
+
+
 
 
 
