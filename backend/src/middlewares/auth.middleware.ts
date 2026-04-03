@@ -11,7 +11,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     try {
         const payload = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
         // Agregar la información del usuario al objeto de solicitud para su uso en rutas protegidas
-        req.user = {
+        (req as any).user = {
             id: payload.id,
             role_id: payload.role_id,
             role: payload.role,
@@ -25,7 +25,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 
 export const authorizeRoles = (...roles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        if (!req.user || !roles.includes(req.user.role)) {
+        if (!(req as any).user || !roles.includes((req as any).user.role)) {
             return res.status(403).json({ message: 'Forbidden' });
         }
         next();

@@ -9,6 +9,9 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc"
   },
+  "ts-node": {
+    "files": true
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
