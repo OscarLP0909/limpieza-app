@@ -8,6 +8,7 @@ declare global {
                 role_id: number;
                 role: string,
                 type: 'client' | 'employee';
+                client_id?: number;
             }
         }
     }
