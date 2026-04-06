@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getWorks, getWorkById, createWork, getWorksByClientId } from "../controllers/work.controller";
+import { getWorks, getWorkById, createWork, getWorksByClientId, updateWork } from "../controllers/work.controller";
 import { authenticateToken, authorizeRoles } from "../middlewares/auth.middleware";
 
 const router = Router();
@@ -9,5 +9,6 @@ router.get('/', authenticateToken, authorizeRoles('admin', 'gestor'), getWorks);
 router.get('/my', authenticateToken, authorizeRoles('cliente'), getWorksByClientId);
 router.get('/:id', authenticateToken, authorizeRoles('admin', 'gestor'), getWorkById);
 router.post('/', authenticateToken, authorizeRoles('cliente'), createWork);
+router.patch('/:id', authenticateToken, authorizeRoles('admin', 'gestor'), updateWork);
 
 export default router;
