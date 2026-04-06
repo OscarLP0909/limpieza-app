@@ -53,3 +53,16 @@ export const createWork = async (req: Request, res: Response, next: NextFunction
         next(error);
     }
 };
+
+export const getWorksByClientId = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const id_cliente = (req as any).user!.client_id;
+        if (!id_cliente) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+        const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id WHERE t.id_cliente = ?', [id_cliente]);
+        return res.status(200).json(works);
+    } catch (error) {
+        next(error);
+    }
+};

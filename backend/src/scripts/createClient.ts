@@ -4,9 +4,9 @@ dotenv.config();
 import pool from "../database/db";
 
 async function createUser() {
-    const hash = await bcrypt.hash('admin123', 10);
+    const hash = await bcrypt.hash('client456', 10);
 
-    await pool.query('INSERT INTO users (email, password, role_id, type) VALUES (?, ?, ?, ?)', ['admin@example.com', hash, 1, 'admin']);
+    await pool.query('INSERT INTO users (email, password, role_id, type) VALUES (?, ?, ?, ?)', ['client1@example.com', hash, 4, 'client']);
 
     console.log('User created successfully');
     process.exit(0);
