@@ -13,6 +13,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         // Agregar la información del usuario al objeto de solicitud para su uso en rutas protegidas
         (req as any).user = {
             id: payload.id,
+            client_id: payload.client_id,
             role_id: payload.role_id,
             role: payload.role,
             type: payload.type,

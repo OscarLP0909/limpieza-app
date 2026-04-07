@@ -30,8 +30,13 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         if (!user_pwd) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
+        let clientId = null;
+        if (user_email[0]!.type === 'client') {
+            const [client] = await db.query('SELECT id FROM clients WHERE user_id = ?', [user_email[0]!.id]) as [[{ id: number }], any];
+            clientId = client[0]?.id ?? null;
+        }
         const jwtSecret = process.env.JWT_SECRET as string;
-        const token = jwt.sign({ id: user_email[0]!.id, role_id: user_email[0]!.role_id, role: user_email[0]!.role, type: user_email[0]!.type }, jwtSecret, { expiresIn: '7d' });
+        const token = jwt.sign({ id: user_email[0]!.id, role_id: user_email[0]!.role_id, role: user_email[0]!.role, type: user_email[0]!.type, client_id: clientId }, jwtSecret, { expiresIn: '7d' });
 
         res.cookie('token', token, {
             httpOnly: true,

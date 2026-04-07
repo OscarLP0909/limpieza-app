@@ -5,6 +5,7 @@ dotenv.config();
 import cors from 'cors';
 import pool from './database/db';
 import authRoutes from './routes/auth.routes';
+import workRoutes from './routes/work.routes';
 import cookieParser from 'cookie-parser';
 
 
@@ -22,6 +23,7 @@ app.use(cors({
 }))
 
 app.use('/auth', authRoutes);
+app.use('/works', workRoutes);
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
