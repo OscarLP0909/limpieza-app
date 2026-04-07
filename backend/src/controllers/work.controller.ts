@@ -5,6 +5,7 @@ import db from "../database/db";
 interface WorkRow extends RowDataPacket {
     id: number;
     id_tipo_servicio: number,
+    id_cliente: number,
     nombre: string;
     tipo_servicio: string;
     frecuencia: string;
@@ -71,12 +72,15 @@ export const getWorksByClientId = async (req: Request, res: Response, next: Next
 export const updateWork = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
-        const { id_employees } = (req as any).body;
+        const { id_employees, duracion } = (req as any).body;
         if (!id) {
             return res.status(403).json({ message: 'Forbidden' });
         }
         if(!id_employees || id_employees.length === 0) {
             return res.status(400).json({ message: 'At least one employee es required'});
+        }
+        if (!duracion) {
+            return res.status(400).json({ message: 'Duration is required'});
         }
         const [rows] = await db.query<WorkRow[]>('SELECT id_tipo_servicio FROM trabajos WHERE id = ?', [id]);
         if (rows.length === 0) {
@@ -93,7 +97,7 @@ export const updateWork = async (req: Request, res: Response, next: NextFunction
         const expira = new Date();
         expira.setDate(expira.getDate() + 15);
 
-        const updated = await db.query('UPDATE Trabajos SET precio = ?, estado = ?, presupuesto_expira_en = ? WHERE id = ?', [precio_final, 'presupuestado', expira, id]);
+        const updated = await db.query('UPDATE Trabajos SET precio = ?, duracion = ?, estado = ?, presupuesto_expira_en = ? WHERE id = ?', [precio_final, duracion,  'presupuestado', expira, id]);
 
         await Promise.all(
             id_employees.map((employee: number) =>
@@ -105,6 +109,42 @@ export const updateWork = async (req: Request, res: Response, next: NextFunction
         res.status(200).json({ message: "Task updated successfully" });
 
         
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateWorkStatus = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const id_cliente = (req as any).user!.client_id;
+        const validStatuses = ["aceptado", "rechazado", "cancelado"];
+        const cancelableStatuses = ["presupuestado", "aceptado"];
+        if (!id) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+        if(!status || typeof(status) !== "string") {
+            return res.status(403).json({ message: 'Status is required and must be a String' });
+        }
+        if(!validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'Status must be aceptado or rechazado' })
+        }
+        const [rows] = await db.query<WorkRow[]>('SELECT estado, id_cliente FROM trabajos WHERE id = ?', [id]);
+        if(rows.length === 0) {
+            return res.status(404).json({ message: "Work not found" });
+        }
+        if(rows[0].id_cliente !== id_cliente) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+        if(!cancelableStatuses.includes(rows[0].estado)) {
+            return res.status(400).json({ message: 'Work cannot be updated in its current status' });
+        }
+        if (rows[0].estado === 'aceptado' && status !== 'cancelado') {
+            return res.status(400).json({ message: 'Work in aceptado status can only be cancelled' })
+        }
+        const updateStatus = await db.query('UPDATE trabajos SET estado = ? WHERE id = ?', [status, id]);
+        res.status(200).json({ message: "Task updated successfully" });
     } catch (error) {
         next(error);
     }
