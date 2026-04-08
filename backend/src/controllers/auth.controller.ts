@@ -71,3 +71,28 @@ export const me = async (req: Request, res: Response, next: NextFunction) => {
         next(error);
     }
 };
+
+export const register = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { nombre, apellidos, direccion, telefono, email, password } = req.body;
+        if (!nombre || !apellidos || !direccion || !telefono || !email || !password) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+        const [rowEmail] = await db.query('SELECT id FROM Users WHERE email = ?', [email]) as [UserRow[], any];
+        if (rowEmail.length > 0) {
+            return res.status(400).json({ message: 'Email already exists' });
+        }
+        const hashPwd = await bcrypt.hash(password, 10);
+
+        const [newUser] = await db.query('INSERT INTO Users (email, password, role_id, type) VALUES (?, ?, ?, ?)', [email, hashPwd, 4, 'client']);
+        const userId = (newUser as any).insertId;
+        if(!userId) {
+            return res.status(400).json({ message: 'No userId inserted'});
+        }
+        const [clientNew] = await db.query('INSERT INTO Clients (nombre, apellidos, direccion, telefono, user_id) VALUES (?, ?, ?, ?, ?)', [nombre, apellidos, direccion, telefono, userId]);
+        return res.status(200).json({ message: 'Client registered'});
+
+    } catch (error) {
+        next(error);
+    }
+};
