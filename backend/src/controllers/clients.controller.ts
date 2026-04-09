@@ -15,7 +15,7 @@ interface ClientRow extends RowDataPacket {
 
 export const getClients = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const [rows] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono FROM Clients c');
+        const [rows] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono, u.email FROM Clients c JOIN Users u on e.user_id = u.id');
         return res.status(200).json(rows);
     } catch (error) {
         next(error);
@@ -30,15 +30,13 @@ export const createClient = async (req: Request, res: Response, next: NextFuncti
         }
         const hashedPwd = await bcrypt.hash(password, 10);
         const [existUser] = await db.query<ClientRow[]>('SELECT email FROM Users WHERE email = ?', [email]);
-        const existUser_id = existUser[0]?.user_id;
-        if (existUser.length === 0) {
-            const [newUser] = await db.query('INSERT INTO Users (email, password) VALUES (?, ?)', [email, hashedPwd]);
-            const user_id = (newUser as any).insertId;
-            await db.query('INSERT INTO Clients (nombre, apellidos, direccion, telefono, role_id, user_id) VALUES (?, ?, ?, ?, ?, ?)', [nombre, apellidos, direccion, telefono, 4, user_id]);
-            return res.status(201).json({ message: 'Client and User created successfully' });
+        if (existUser.length > 0) {
+            return res.status(400).json({ message: 'Email already exists' });
         }
-        await db.query('INSERT INTO Clients (nombre, apellidos, direccion, telefono, role_id, user_id) VALUES (?, ?, ?, ?, ?, ?)', [nombre, apellidos, direccion, telefono, 4, existUser_id]);
-        return res.status(201).json({ message: 'Client created successfully' });
+        const [newUser] = await db.query('INSERT INTO Users (email, password) VALUES (?, ?)', [email, hashedPwd]);
+        const user_id = (newUser as any).insertId;
+        await db.query('INSERT INTO Clients (nombre, apellidos, direccion, telefono, role_id, user_id) VALUES (?, ?, ?, ?, ?, ?)', [nombre, apellidos, direccion, telefono, 4, user_id]);
+        return res.status(201).json({ message: 'Client and User created successfully' });
     } catch (error) {
         next(error);
     }
@@ -59,7 +57,7 @@ export const updateClient = async (req: Request, res: Response, next: NextFuncti
         const user_id = userRow[0]?.user_id;
         await db.query('UPDATE Users SET email = COALESCE(?, email), password = COALESCE(?, password) WHERE id = ?', [email, hashedPwd, user_id]);
         const [clientRow] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono FROM Clients c WHERE id = ?', [id]);
-        if(clientRow.length === 0) {
+        if (clientRow.length === 0) {
             return res.status(404).json({ message: 'Client not found' });
         }
         await db.query('UPDATE Clients SET nombre = COALESCE(?, nombre), apellidos = COALESCE(?, apellidos), direccion = COALESCE(?, direccion), telefono = COALESCE(?, telefono) WHERE id = ?', [nombre, apellidos, direccion, telefono, id]);
@@ -86,7 +84,7 @@ export const deleteClient = async (req: Request, res: Response, next: NextFuncti
         }
         await db.query('DELETE FROM Users WHERE id = ?', user_id);
         await db.query('DELETE FROM Clients WHERE id = ?', id);
-        res.status(200).json({ message: 'Client deleted successfully' });
+        return res.status(200).json({ message: 'Client deleted successfully' });
     } catch (error) {
         next(error);
     }
