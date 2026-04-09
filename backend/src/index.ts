@@ -7,6 +7,7 @@ import pool from './database/db';
 import authRoutes from './routes/auth.routes';
 import workRoutes from './routes/work.routes';
 import serviceRoutes from './routes/services.routes'
+import employeeRoutes from './routes/employees.routes';
 import cookieParser from 'cookie-parser';
 
 
@@ -25,7 +26,8 @@ app.use(cors({
 
 app.use('/auth', authRoutes);
 app.use('/works', workRoutes);
-app.use('/services', serviceRoutes)
+app.use('/services', serviceRoutes);
+app.use('/employees', employeeRoutes);
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
