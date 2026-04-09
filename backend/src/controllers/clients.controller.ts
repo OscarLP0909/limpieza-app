@@ -15,7 +15,7 @@ interface ClientRow extends RowDataPacket {
 
 export const getClients = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const [rows] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono, u.email FROM Clients c JOIN Users u on e.user_id = u.id');
+        const [rows] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono, u.email FROM Clients c JOIN Users u on c.user_id = u.id');
         return res.status(200).json(rows);
     } catch (error) {
         next(error);
@@ -33,7 +33,7 @@ export const createClient = async (req: Request, res: Response, next: NextFuncti
         if (existUser.length > 0) {
             return res.status(400).json({ message: 'Email already exists' });
         }
-        const [newUser] = await db.query('INSERT INTO Users (email, password) VALUES (?, ?)', [email, hashedPwd]);
+        const [newUser] = await db.query('INSERT INTO Users (email, password, role_id, type) VALUES (?, ?, ?, ?)', [email, hashedPwd, 4, 'client']);
         const user_id = (newUser as any).insertId;
         await db.query('INSERT INTO Clients (nombre, apellidos, direccion, telefono, role_id, user_id) VALUES (?, ?, ?, ?, ?, ?)', [nombre, apellidos, direccion, telefono, 4, user_id]);
         return res.status(201).json({ message: 'Client and User created successfully' });

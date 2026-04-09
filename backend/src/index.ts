@@ -29,6 +29,9 @@ app.use('/auth', authRoutes);
 app.use('/works', workRoutes);
 app.use('/services', serviceRoutes);
 app.use('/employees', employeeRoutes);
+app.post('/clients-test', (req, res) => {
+    res.status(200).json({ message: 'ok' });
+});
 app.use('/clients', clientRoutes);
 
 app.get('/health', (req, res) => {
