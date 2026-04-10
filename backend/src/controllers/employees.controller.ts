@@ -17,7 +17,7 @@ interface EmployeeRow extends RowDataPacket {
 
 export const getEmployees = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const [rows] = await db.query<EmployeeRow[]>('SELECT e.nombre, e.apellidos, u.email, e.telefono, e.iban, e.nif, e.direccion, e.status FROM Employees e JOIN Users u ON e.user_id = u.id');
+        const [rows] = await db.query<EmployeeRow[]>('SELECT e.id, e.nombre, e.apellidos, u.email, e.telefono, e.iban, e.nif, e.direccion, e.status FROM Employees e JOIN Users u ON e.user_id = u.id');
         return res.status(200).json(rows);
     } catch (error) {
         next(error);

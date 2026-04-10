@@ -10,7 +10,7 @@ interface ServiceRow extends RowDataPacket {
 
 export const getServices = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const [rowsServices] = await db.query<ServiceRow[]>('SELECT tipo_servicio, precio FROM Tipo_Servicio');
+        const [rowsServices] = await db.query<ServiceRow[]>('SELECT id, tipo_servicio, precio FROM Tipo_Servicio');
         if (rowsServices.length === 0) {
             return res.status(200).json(rowsServices);
         }

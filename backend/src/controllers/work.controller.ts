@@ -50,8 +50,77 @@ export const createWork = async (req: Request, res: Response, next: NextFunction
         if (!id_tipo_servicio || !id_frecuencia || !direccion_trabajo || !fecha_hora) {
             return res.status(400).json({ message: 'All fields are required' });
         }
-        const [result] = await db.query('INSERT INTO Trabajos (id_cliente, id_tipo_servicio, id_frecuencia, direccion_trabajo, fecha_hora) VALUES (?, ?, ?, ?, ?)', [id_cliente, id_tipo_servicio, id_frecuencia, direccion_trabajo, fecha_hora]);
-        return res.status(201).json({ id: (result as any).insertId, message: 'Work created successfully' });
+
+        const [result] = await db.query(
+            'INSERT INTO Trabajos (id_cliente, id_tipo_servicio, id_frecuencia, direccion_trabajo, fecha_hora, estado) VALUES (?, ?, ?, ?, ?, ?)',
+            [id_cliente, id_tipo_servicio, id_frecuencia, direccion_trabajo, fecha_hora, 'pendiente']
+        );
+        const workId = (result as any).insertId;
+
+        // Fetch work details for the notification email
+        const [workRows] = await db.query<WorkRow[]>(`
+            SELECT c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.fecha_hora
+            FROM Trabajos t
+            JOIN Clients c ON c.id = t.id_cliente
+            JOIN Tipo_Servicio s ON s.id = t.id_tipo_servicio
+            JOIN Frecuencia f ON f.id = t.id_frecuencia
+            WHERE t.id = ?
+        `, [workId]);
+
+        // Notify all admins and gestores
+        const [staffRows] = await db.query<WorkRow[]>(
+            'SELECT u.email FROM Users u WHERE u.role_id IN (1, 2)'
+        );
+        if (workRows.length > 0 && staffRows.length > 0) {
+            const w = workRows[0]!;
+            const staffEmails = (staffRows as any[]).map((r: any) => r.email).join(', ');
+            await sendEmail({
+                to: staffEmails,
+                subject: `Nuevo trabajo solicitado — ${w.tipo_servicio}`,
+                html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                    <div style="background-color: #2563eb; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                        <h1 style="color: white; margin: 0;">LimpiezaPro</h1>
+                    </div>
+                    <div style="padding: 30px;">
+                        <h2 style="color: #1e293b;">📋 Nuevo trabajo solicitado</h2>
+                        <p style="color: #64748b;">Se ha recibido una nueva solicitud de trabajo que requiere asignación de empleados y presupuesto.</p>
+                        <div style="background-color: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 10px 0; color: #64748b; width: 140px;">Cliente</td>
+                                    <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${w.nombre}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 10px 0; color: #64748b;">Servicio</td>
+                                    <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${w.tipo_servicio}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 10px 0; color: #64748b;">Frecuencia</td>
+                                    <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${w.frecuencia}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 10px 0; color: #64748b;">Dirección</td>
+                                    <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${w.direccion_trabajo}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0; color: #64748b;">Fecha y hora</td>
+                                    <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${new Date(w.fecha_hora).toLocaleString('es-ES')}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div style="background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 16px; border-radius: 4px;">
+                            <p style="margin: 0; color: #1d4ed8;">⚡ Accede al panel de administración para asignar empleados y generar el presupuesto.</p>
+                        </div>
+                    </div>
+                    <div style="background-color: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px; text-align: center;">
+                        <p style="color: #94a3b8; font-size: 12px; margin: 0;">© 2026 LimpiezaPro. Todos los derechos reservados.</p>
+                    </div>
+                </div>`
+            });
+        }
+
+        return res.status(201).json({ id: workId, message: 'Work created successfully' });
     } catch (error) {
         next(error);
     }
@@ -168,7 +237,7 @@ export const updateWork = async (req: Request, res: Response, next: NextFunction
                 </div>
 
                 <div style="background-color: #fef9c3; border-left: 4px solid #eab308; padding: 16px; border-radius: 4px; margin: 20px 0;">
-                    <p style="margin: 0; color: #854d0e;">⚠️ Tienes <strong>15 días</strong> para aceptar o rechazar este presupuesto. Si no respondes, se cancelará automáticamente.</p>
+                    <p style="margin: 0; color: #854d0e;">⚠️ Tienes <strong>15 días</strong> para aceptar o rechazar este presupuesto.</p>
                 </div>
 
                 <p style="color: #64748b; font-size: 14px; margin-top: 30px;">Si tienes alguna duda, no dudes en contactarnos.</p>
@@ -217,6 +286,123 @@ export const updateWorkStatus = async (req: Request, res: Response, next: NextFu
         }
         const updateStatus = await db.query('UPDATE trabajos SET estado = ? WHERE id = ?', [status, id]);
         res.status(200).json({ message: "Task updated successfully" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/** Cliente solicita cancelación → notifica a admin/gestor por email */
+export const requestCancelWork = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const id_cliente = (req as any).user!.client_id;
+
+        const [rows] = await db.query<WorkRow[]>(`
+            SELECT t.estado, t.id_cliente, c.nombre,
+                   s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.fecha_hora
+            FROM Trabajos t
+            JOIN Clients c ON c.id = t.id_cliente
+            JOIN Tipo_Servicio s ON s.id = t.id_tipo_servicio
+            JOIN Frecuencia f ON f.id = t.id_frecuencia
+            WHERE t.id = ?`, [id]);
+
+        if (rows.length === 0) return res.status(404).json({ message: 'Work not found' });
+        if (rows[0].id_cliente !== id_cliente) return res.status(403).json({ message: 'Forbidden' });
+        if (rows[0].estado !== 'aceptado') return res.status(400).json({ message: 'Solo se pueden solicitar cancelaciones de trabajos aceptados' });
+
+        const w = rows[0];
+        const [staffRows] = await db.query<WorkRow[]>('SELECT u.email FROM Users u WHERE u.role_id IN (1, 2)');
+        const staffEmails = (staffRows as any[]).map((r: any) => r.email).join(', ');
+
+        await sendEmail({
+            to: staffEmails,
+            subject: `Solicitud de cancelacion - Trabajo #${id}`,
+            html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                <div style="background-color: #dc2626; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                    <h1 style="color: white; margin: 0;">LimpiezaPro</h1>
+                </div>
+                <div style="padding: 30px;">
+                    <h2 style="color: #1e293b;">Solicitud de cancelacion - Trabajo #${id}</h2>
+                    <p style="color: #64748b;">El cliente <strong>${w.nombre}</strong> ha solicitado la cancelacion del siguiente trabajo. Por favor, revisa la situacion y procede a cancelarlo si corresponde.</p>
+                    <div style="background-color: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 10px 0; color: #64748b; width: 140px;">Cliente</td>
+                                <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${w.nombre}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 10px 0; color: #64748b;">Servicio</td>
+                                <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${w.tipo_servicio}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 10px 0; color: #64748b;">Frecuencia</td>
+                                <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${w.frecuencia}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 10px 0; color: #64748b;">Direccion</td>
+                                <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${w.direccion_trabajo}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 0; color: #64748b;">Fecha y hora</td>
+                                <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">${new Date(w.fecha_hora).toLocaleString('es-ES')}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; border-radius: 4px;">
+                        <p style="margin: 0; color: #991b1b;">Accede al panel de administracion para cancelar este trabajo.</p>
+                    </div>
+                </div>
+                <div style="background-color: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px; text-align: center;">
+                    <p style="color: #94a3b8; font-size: 12px; margin: 0;">2026 LimpiezaPro. Todos los derechos reservados.</p>
+                </div>
+            </div>`
+        });
+
+        return res.status(200).json({ message: 'Solicitud de cancelacion enviada al responsable' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/** Admin/gestor cancela el trabajo efectivamente */
+export const adminCancelWork = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await db.query<WorkRow[]>('SELECT estado, id_cliente FROM Trabajos WHERE id = ?', [id]);
+        if (rows.length === 0) return res.status(404).json({ message: 'Work not found' });
+        if (!['aceptado', 'presupuestado'].includes(rows[0].estado)) {
+            return res.status(400).json({ message: 'Solo se pueden cancelar trabajos aceptados o presupuestados' });
+        }
+
+        await db.query('UPDATE Trabajos SET estado = ? WHERE id = ?', ['cancelado', id]);
+
+        // Notificar al cliente
+        const [clientEmail] = await db.query<WorkRow[]>(
+            'SELECT u.email FROM Users u JOIN Clients c ON c.user_id = u.id WHERE c.id = ?',
+            [rows[0].id_cliente]
+        );
+        if (clientEmail.length > 0) {
+            await sendEmail({
+                to: (clientEmail[0] as any).email,
+                subject: 'Tu trabajo ha sido cancelado - LimpiezaPro',
+                html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                    <div style="background-color: #2563eb; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                        <h1 style="color: white; margin: 0;">LimpiezaPro</h1>
+                    </div>
+                    <div style="padding: 30px;">
+                        <h2 style="color: #1e293b;">Trabajo #${id} cancelado</h2>
+                        <p style="color: #64748b;">Tu solicitud de cancelacion ha sido procesada. El trabajo ha quedado cancelado. Si tienes alguna duda, contacta con nosotros.</p>
+                    </div>
+                    <div style="background-color: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px; text-align: center;">
+                        <p style="color: #94a3b8; font-size: 12px; margin: 0;">2026 LimpiezaPro. Todos los derechos reservados.</p>
+                    </div>
+                </div>`
+            });
+        }
+
+        return res.status(200).json({ message: 'Trabajo cancelado correctamente' });
     } catch (error) {
         next(error);
     }

@@ -6,9 +6,10 @@ import cors from 'cors';
 import pool from './database/db';
 import authRoutes from './routes/auth.routes';
 import workRoutes from './routes/work.routes';
-import serviceRoutes from './routes/services.routes'
+import serviceRoutes from './routes/services.routes';
 import employeeRoutes from './routes/employees.routes';
 import clientRoutes from './routes/clients.routes';
+import './cron/presupuesto.cron';
 import cookieParser from 'cookie-parser';
 
 

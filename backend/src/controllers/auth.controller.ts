@@ -62,11 +62,11 @@ export const logout = (req: Request, res: Response, next:NextFunction) => {
 
 export const me = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const user = await db.query('SELECT u.email, r.rol as role, u.type FROM users u JOIN Roles r ON u.role_id = r.id WHERE u.id = ?', (req as any).user!.id);
-        if (!user) {
+        const [rows] = await db.query('SELECT u.email, r.rol as role, u.type FROM users u JOIN Roles r ON u.role_id = r.id WHERE u.id = ?', [(req as any).user!.id]) as [UserRow[], any];
+        if (!rows || rows.length === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
-        return res.status(200).json({ user: user[0] });
+        return res.status(200).json({ user: rows[0] });
     } catch (error) {
         next(error);
     }

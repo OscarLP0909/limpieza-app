@@ -5,7 +5,7 @@ import { getServices, createService, updateService, deleteService } from "../con
 
 const router = Router();
 
-router.get('/', authenticateToken, authorizeRoles('admin'), getServices);
+router.get('/', authenticateToken, getServices);
 router.post('/', authenticateToken, authorizeRoles('admin'), createService);
 router.delete('/:id', authenticateToken, authorizeRoles('admin'), deleteService);
 router.patch('/:id', authenticateToken, authorizeRoles('admin'), updateService);
