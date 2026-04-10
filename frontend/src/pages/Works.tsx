@@ -65,16 +65,14 @@ export default function Works() {
   return (
     <div className="space-y-5">
       {/* Filters & search */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1">
-          <input
-            type="text"
-            className="input"
-            placeholder="Buscar por cliente, servicio o dirección..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+      <div className="flex flex-col gap-3">
+        <input
+          type="text"
+          className="input"
+          placeholder="Buscar por cliente, servicio o dirección..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <div className="flex gap-1 flex-wrap">
           {FILTERS.map((f) => (
             <button
@@ -110,32 +108,32 @@ export default function Works() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-6 py-3 text-left font-semibold">ID</th>
-                  <th className="px-6 py-3 text-left font-semibold">Cliente</th>
-                  <th className="px-6 py-3 text-left font-semibold">Servicio</th>
-                  <th className="px-6 py-3 text-left font-semibold">Dirección</th>
-                  <th className="px-6 py-3 text-left font-semibold">Fecha</th>
-                  <th className="px-6 py-3 text-left font-semibold">Precio</th>
-                  <th className="px-6 py-3 text-left font-semibold">Estado</th>
-                  <th className="px-6 py-3 text-left font-semibold"></th>
+                  <th className="px-4 py-3 text-left font-semibold hidden sm:table-cell">ID</th>
+                  <th className="px-4 py-3 text-left font-semibold">Cliente</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden md:table-cell">Servicio</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden lg:table-cell">Dirección</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden sm:table-cell">Fecha</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden md:table-cell">Precio</th>
+                  <th className="px-4 py-3 text-left font-semibold">Estado</th>
+                  <th className="px-4 py-3 text-left font-semibold"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filtered.map((work) => (
                   <tr key={work.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-6 py-4 text-gray-400 dark:text-gray-500 font-mono text-xs">
+                    <td className="px-4 py-4 text-gray-400 dark:text-gray-500 font-mono text-xs hidden sm:table-cell">
                       #{work.id}
                     </td>
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                    <td className="px-4 py-4 font-medium text-gray-900 dark:text-white">
                       {work.nombre ?? '—'}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 hidden md:table-cell">
                       {work.tipo_servicio ?? `Servicio #${work.id_tipo_servicio}`}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300 max-w-xs truncate">
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 max-w-xs truncate hidden lg:table-cell">
                       {work.direccion_trabajo}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap hidden sm:table-cell">
                       {work.fecha_hora
                         ? new Date(work.fecha_hora).toLocaleDateString('es-ES', {
                             day: '2-digit',
@@ -144,25 +142,25 @@ export default function Works() {
                           })
                         : '—'}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap hidden md:table-cell">
                       {work.precio != null ? `${Number(work.precio).toFixed(2)} €` : '—'}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <StatusBadge estado={work.estado} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <Link
                           to={`/works/${work.id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                          className="inline-flex items-center gap-1 px-2 md:px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors whitespace-nowrap"
                         >
-                          Ver detalle
+                          Ver
                         </Link>
                         {work.estado === 'aceptado' && (
                           <button
                             onClick={() => generateWorkPDF(work)}
                             title="Descargar PDF"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                            className="inline-flex items-center gap-1 px-2 md:px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
                           >
                             PDF
                           </button>

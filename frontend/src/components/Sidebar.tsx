@@ -14,6 +14,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Empleados', path: '/employees', icon: '👷' },
     { label: 'Clientes', path: '/clients', icon: '👤' },
     { label: 'Servicios', path: '/services', icon: '📋' },
+    { label: 'Usuarios', path: '/staff-users', icon: '🔑' },
   ],
   gestor: [
     { label: 'Dashboard', path: '/dashboard', icon: '⊞' },
@@ -32,22 +33,45 @@ const navByRole: Record<string, NavItem[]> = {
   ],
 };
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user } = useAuth();
   const role = user?.role ?? 'cliente';
   const items = navByRole[role] ?? [];
 
   return (
-    <aside className="fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col z-20">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-          L
+    <aside
+      className={`
+        fixed top-0 left-0 h-full w-64
+        bg-white dark:bg-gray-900
+        border-r border-gray-200 dark:border-gray-700
+        flex flex-col z-20
+        transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
+      `}
+    >
+      {/* Logo + close button (mobile) */}
+      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0">
+            L
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">LimpiezaPro</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 capitalize">{role}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">LimpiezaPro</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 capitalize">{role}</p>
-        </div>
+        <button
+          onClick={onClose}
+          className="md:hidden w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          ✕
+        </button>
       </div>
 
       {/* Nav */}
@@ -61,6 +85,7 @@ export default function Sidebar() {
               <NavLink
                 to={item.path}
                 end={item.path === '/dashboard'}
+                onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
                     isActive
@@ -77,7 +102,7 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* User info at bottom */}
+      {/* User info */}
       <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
       </div>

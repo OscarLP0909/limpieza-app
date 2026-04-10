@@ -190,24 +190,25 @@ export default function Clients() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-6 py-3 text-left font-semibold">Nombre</th>
-                  <th className="px-6 py-3 text-left font-semibold">Email</th>
-                  <th className="px-6 py-3 text-left font-semibold">Teléfono</th>
-                  <th className="px-6 py-3 text-left font-semibold">Dirección</th>
-                  {isAdmin && <th className="px-6 py-3 text-left font-semibold">Acciones</th>}
+                  <th className="px-4 py-3 text-left font-semibold">Nombre</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden sm:table-cell">Email</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden md:table-cell">Teléfono</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden lg:table-cell">Dirección</th>
+                  {isAdmin && <th className="px-4 py-3 text-left font-semibold">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filtered.map((client) => (
                   <tr key={client.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                      {client.nombre} {client.apellidos}
+                    <td className="px-4 py-4 font-medium text-gray-900 dark:text-white">
+                      <div>{client.nombre} {client.apellidos}</div>
+                      <div className="text-xs text-gray-500 sm:hidden">{client.email}</div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{client.email}</td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{client.telefono}</td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300 max-w-xs truncate">{client.direccion}</td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 hidden sm:table-cell">{client.email}</td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 hidden md:table-cell">{client.telefono}</td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 max-w-xs truncate hidden lg:table-cell">{client.direccion}</td>
                     {isAdmin && (
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => openEdit(client)}

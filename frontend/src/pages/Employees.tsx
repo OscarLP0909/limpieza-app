@@ -199,30 +199,31 @@ export default function Employees() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-6 py-3 text-left font-semibold">Nombre</th>
-                  <th className="px-6 py-3 text-left font-semibold">Email</th>
-                  <th className="px-6 py-3 text-left font-semibold">Teléfono</th>
-                  <th className="px-6 py-3 text-left font-semibold">NIF</th>
-                  <th className="px-6 py-3 text-left font-semibold">Estado</th>
-                  {isAdmin && <th className="px-6 py-3 text-left font-semibold">Acciones</th>}
+                  <th className="px-4 py-3 text-left font-semibold">Nombre</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden sm:table-cell">Email</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden md:table-cell">Teléfono</th>
+                  <th className="px-4 py-3 text-left font-semibold hidden lg:table-cell">NIF</th>
+                  <th className="px-4 py-3 text-left font-semibold">Estado</th>
+                  {isAdmin && <th className="px-4 py-3 text-left font-semibold">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filtered.map((emp) => (
                   <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                      {emp.nombre} {emp.apellidos}
+                    <td className="px-4 py-4 font-medium text-gray-900 dark:text-white">
+                      <div>{emp.nombre} {emp.apellidos}</div>
+                      <div className="text-xs text-gray-500 sm:hidden">{emp.email}</div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{emp.email}</td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{emp.telefono}</td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-mono text-xs">{emp.nif}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 hidden sm:table-cell">{emp.email}</td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 hidden md:table-cell">{emp.telefono}</td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300 font-mono text-xs hidden lg:table-cell">{emp.nif}</td>
+                    <td className="px-4 py-4">
                       <span className={emp.status === 'activo' ? 'badge-activo' : 'badge-inactivo'}>
                         {emp.status}
                       </span>
                     </td>
                     {isAdmin && (
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => openEdit(emp)}

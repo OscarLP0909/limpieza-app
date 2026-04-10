@@ -9,6 +9,7 @@ import workRoutes from './routes/work.routes';
 import serviceRoutes from './routes/services.routes';
 import employeeRoutes from './routes/employees.routes';
 import clientRoutes from './routes/clients.routes';
+import userRoutes from './routes/users.routes';
 import './cron/presupuesto.cron';
 import cookieParser from 'cookie-parser';
 
@@ -34,6 +35,7 @@ app.post('/clients-test', (req, res) => {
     res.status(200).json({ message: 'ok' });
 });
 app.use('/clients', clientRoutes);
+app.use('/users', userRoutes);
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
