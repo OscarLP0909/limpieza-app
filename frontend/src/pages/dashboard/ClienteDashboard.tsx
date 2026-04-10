@@ -11,6 +11,7 @@ function StatusBadge({ estado }: { estado: Work['estado'] }) {
     aceptado: 'badge-aceptado',
     rechazado: 'badge-rechazado',
     cancelado: 'badge-cancelado',
+    cancelacion_solicitada: 'badge-cancelacion',
   };
   const labels: Record<string, string> = {
     creado: 'Pendiente',
@@ -19,6 +20,7 @@ function StatusBadge({ estado }: { estado: Work['estado'] }) {
     aceptado: 'Aceptado',
     rechazado: 'Rechazado',
     cancelado: 'Cancelado',
+    cancelacion_solicitada: 'Cancelación solicitada',
   };
   return <span className={classes[estado] ?? 'badge-cancelado'}>{labels[estado] ?? estado}</span>;
 }
@@ -87,6 +89,7 @@ function SenaModal({
 function WorkCard({ work, onStatusChange }: { work: Work; onStatusChange: () => void }) {
   const [updating, setUpdating] = useState(false);
   const [showSenaModal, setShowSenaModal] = useState(false);
+  const [cancelRequested, setCancelRequested] = useState(false);
 
   const handleStatus = async (status: string) => {
     setUpdating(true);
@@ -97,6 +100,21 @@ function WorkCard({ work, onStatusChange }: { work: Work; onStatusChange: () => 
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         'Error al actualizar el estado';
+      alert(msg);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleRequestCancel = async () => {
+    setUpdating(true);
+    try {
+      await api.post(`/works/${work.id}/request-cancel`);
+      setCancelRequested(true);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Error al enviar la solicitud';
       alert(msg);
     } finally {
       setUpdating(false);
@@ -192,15 +210,21 @@ function WorkCard({ work, onStatusChange }: { work: Work; onStatusChange: () => 
           </button>
         </div>
       )}
-      {work.estado === 'aceptado' && (
+      {(work.estado === 'aceptado' || work.estado === 'cancelacion_solicitada') && (
         <div className="pt-1 border-t border-gray-100 dark:border-gray-700">
-          <button
-            disabled={updating}
-            onClick={() => handleStatus('cancelado')}
-            className="w-full btn-secondary text-sm py-1.5 text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-          >
-            Cancelar trabajo
-          </button>
+          {work.estado === 'cancelacion_solicitada' || cancelRequested ? (
+            <p className="text-xs text-center text-orange-600 dark:text-orange-400 py-1.5">
+              Solicitud enviada al responsable. Te avisaremos cuando se cancele.
+            </p>
+          ) : (
+            <button
+              disabled={updating}
+              onClick={handleRequestCancel}
+              className="w-full btn-secondary text-sm py-1.5 text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              Solicitar cancelación
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -255,6 +279,7 @@ export default function ClienteDashboard() {
 
   const active = works.filter((w) => !['rechazado', 'cancelado'].includes(w.estado));
   const past = works.filter((w) => ['rechazado', 'cancelado'].includes(w.estado));
+
 
   return (
     <div className="space-y-6">

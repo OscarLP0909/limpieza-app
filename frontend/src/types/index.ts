@@ -18,7 +18,7 @@ export interface Work {
   frecuencia?: string;
   direccion_trabajo?: string;
   Direccion?: string;       // getAssignedWorks (empleado)
-  estado: 'creado' | 'pendiente' | 'presupuestado' | 'aceptado' | 'rechazado' | 'cancelado';
+  estado: 'creado' | 'pendiente' | 'presupuestado' | 'aceptado' | 'rechazado' | 'cancelado' | 'cancelacion_solicitada';
   precio?: number | null;
   duracion?: number | null;
   fecha_hora?: string;

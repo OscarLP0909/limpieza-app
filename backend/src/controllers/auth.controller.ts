@@ -78,6 +78,9 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         if (!nombre || !apellidos || !direccion || !telefono || !email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
         }
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+        }
         const [rowEmail] = await db.query('SELECT id FROM Users WHERE email = ?', [email]) as [UserRow[], any];
         if (rowEmail.length > 0) {
             return res.status(400).json({ message: 'Email already exists' });

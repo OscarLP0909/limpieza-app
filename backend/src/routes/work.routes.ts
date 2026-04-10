@@ -12,6 +12,7 @@ router.get('/:id', authenticateToken, authorizeRoles('admin', 'gestor'), getWork
 router.post('/', authenticateToken, authorizeRoles('cliente'), createWork);
 router.patch('/:id', authenticateToken, authorizeRoles('admin', 'gestor'), updateWork);
 router.patch('/:id/status', authenticateToken, authorizeRoles('cliente'), updateWorkStatus);
-
+router.post('/:id/request-cancel', authenticateToken, authorizeRoles('cliente'), requestCancelWork);
+router.patch('/:id/admin-cancel', authenticateToken, authorizeRoles('admin', 'gestor'), adminCancelWork);
 
 export default router;

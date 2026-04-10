@@ -42,26 +42,52 @@ export const createClient = async (req: Request, res: Response, next: NextFuncti
     }
 };
 
-export const updateClient = async (req: Request, res: Response, next: NextFunction) => {
+export const getMyProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { id } = req.params;
+        const client_id = (req as any).user!.client_id;
+        const user_id = (req as any).user!.id;
+        if (!client_id) return res.status(403).json({ message: 'Forbidden' });
+        const [rows] = await db.query<ClientRow[]>(
+            'SELECT c.id, c.nombre, c.apellidos, c.direccion, c.telefono, u.email FROM Clients c JOIN Users u ON c.user_id = u.id WHERE c.id = ? AND u.id = ?',
+            [client_id, user_id]
+        );
+        if (rows.length === 0) return res.status(404).json({ message: 'Client not found' });
+        return res.status(200).json(rows[0]);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateMyProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const client_id = (req as any).user!.client_id;
+        const user_id = (req as any).user!.id;
+        if (!client_id) return res.status(403).json({ message: 'Forbidden' });
+
         const { nombre, apellidos, direccion, telefono, email, password } = req.body;
         if (!nombre && !apellidos && !direccion && !telefono && !email && !password) {
             return res.status(400).json({ message: 'At least one field is required' });
         }
-        const hashedPwd = await bcrypt.hash(password, 10);
-        const [userRow] = await db.query<ClientRow[]>('SELECT email from Users WHERE email = ?', [email]);
-        if (userRow.length === 0) {
-            return res.status(404).json({ message: 'User not found' });
+        if (password && password.length < 6) {
+            return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
         }
-        const user_id = userRow[0]?.user_id;
-        await db.query('UPDATE Users SET email = COALESCE(?, email), password = COALESCE(?, password) WHERE id = ?', [email, hashedPwd, user_id]);
-        const [clientRow] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono FROM Clients c WHERE id = ?', [id]);
-        if (clientRow.length === 0) {
-            return res.status(404).json({ message: 'Client not found' });
+
+        // Check email not taken by another user
+        if (email) {
+            const [existEmail] = await db.query<ClientRow[]>('SELECT id FROM Users WHERE email = ? AND id != ?', [email, user_id]);
+            if (existEmail.length > 0) return res.status(400).json({ message: 'Email already in use' });
         }
-        await db.query('UPDATE Clients SET nombre = COALESCE(?, nombre), apellidos = COALESCE(?, apellidos), direccion = COALESCE(?, direccion), telefono = COALESCE(?, telefono) WHERE id = ?', [nombre, apellidos, direccion, telefono, id]);
-        return res.status(200).json({ message: 'Client and User updated successfully' });
+
+        const hashedPwd = password ? await bcrypt.hash(password, 10) : undefined;
+        await db.query(
+            'UPDATE Users SET email = COALESCE(?, email), password = COALESCE(?, password) WHERE id = ?',
+            [email ?? null, hashedPwd ?? null, user_id]
+        );
+        await db.query(
+            'UPDATE Clients SET nombre = COALESCE(?, nombre), apellidos = COALESCE(?, apellidos), direccion = COALESCE(?, direccion), telefono = COALESCE(?, telefono) WHERE id = ?',
+            [nombre ?? null, apellidos ?? null, direccion ?? null, telefono ?? null, client_id]
+        );
+        return res.status(200).json({ message: 'Perfil actualizado correctamente' });
     } catch (error) {
         next(error);
     }

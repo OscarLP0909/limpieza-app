@@ -12,6 +12,7 @@ function StatusBadge({ estado }: { estado: Work['estado'] }) {
     aceptado: 'badge-aceptado',
     rechazado: 'badge-rechazado',
     cancelado: 'badge-cancelado',
+    cancelacion_solicitada: 'badge-cancelacion',
   };
   const labels: Record<string, string> = {
     creado: 'Pendiente',
@@ -20,11 +21,13 @@ function StatusBadge({ estado }: { estado: Work['estado'] }) {
     aceptado: 'Aceptado',
     rechazado: 'Rechazado',
     cancelado: 'Cancelado',
+    cancelacion_solicitada: 'Cancelación solicitada',
   };
-  return <span className={classes[estado] ?? 'badge-cancelado'}>{labels[estado] ?? estado}</span>;
+  const normalizado = (estado as string | null) === null ? 'pendiente' : estado;
+  return <span className={classes[normalizado] ?? 'badge-cancelado'}>{labels[normalizado] ?? normalizado}</span>;
 }
 
-const FILTERS = ['todos', 'pendiente', 'presupuestado', 'aceptado', 'rechazado', 'cancelado'] as const;
+const FILTERS = ['todos', 'pendiente', 'presupuestado', 'aceptado', 'cancelacion_solicitada', 'rechazado', 'cancelado'] as const;
 type FilterType = (typeof FILTERS)[number];
 
 export default function Works() {
@@ -83,7 +86,7 @@ export default function Works() {
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              {f === 'todos' ? 'Todos' : f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'todos' ? 'Todos' : f === 'cancelacion_solicitada' ? 'Cancel. solicitada' : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
         </div>

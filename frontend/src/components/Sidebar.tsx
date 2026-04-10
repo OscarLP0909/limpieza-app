@@ -23,10 +23,12 @@ const navByRole: Record<string, NavItem[]> = {
   ],
   empleado: [
     { label: 'Mis Trabajos', path: '/dashboard', icon: '🧹' },
+    { label: 'Mi Perfil', path: '/employee-profile', icon: '👤' },
   ],
   cliente: [
     { label: 'Mis Trabajos', path: '/dashboard', icon: '🏠' },
     { label: 'Pedir Trabajo', path: '/new-work', icon: '➕' },
+    { label: 'Mi Perfil', path: '/profile', icon: '👤' },
   ],
 };
 

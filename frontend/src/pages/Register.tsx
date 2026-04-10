@@ -32,6 +32,10 @@ export default function Register() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    if (form.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
     setLoading(true);
     try {
       await api.post('/auth/register', form);
@@ -124,6 +128,7 @@ export default function Register() {
                 value={form.password}
                 onChange={handleChange}
                 required
+                minLength={6}
                 autoComplete="new-password"
               />
             </div>

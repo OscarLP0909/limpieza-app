@@ -10,6 +10,7 @@ function StatusBadge({ estado }: { estado: Work['estado'] }) {
     aceptado: 'badge-aceptado',
     rechazado: 'badge-rechazado',
     cancelado: 'badge-cancelado',
+    cancelacion_solicitada: 'badge-cancelacion',
   };
   const labels: Record<string, string> = {
     creado: 'Pendiente',
@@ -18,6 +19,7 @@ function StatusBadge({ estado }: { estado: Work['estado'] }) {
     aceptado: 'Aceptado',
     rechazado: 'Rechazado',
     cancelado: 'Cancelado',
+    cancelacion_solicitada: 'Cancelación solicitada',
   };
   return <span className={classes[estado] ?? 'badge-cancelado'}>{labels[estado] ?? estado}</span>;
 }

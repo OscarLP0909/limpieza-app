@@ -15,6 +15,8 @@ import NewWork from './pages/NewWork';
 import AdminGestorDashboard from './pages/dashboard/AdminGestorDashboard';
 import ClienteDashboard from './pages/dashboard/ClienteDashboard';
 import EmpleadoDashboard from './pages/dashboard/EmpleadoDashboard';
+import ClientProfile from './pages/ClientProfile';
+import EmployeeProfile from './pages/EmployeeProfile';
 
 function DashboardRouter() {
   const { user } = useAuth();
@@ -96,6 +98,22 @@ export default function App() {
             element={
               <ProtectedRoute roles={['cliente']}>
                 <NewWork />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="profile"
+            element={
+              <ProtectedRoute roles={['cliente']}>
+                <ClientProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="employee-profile"
+            element={
+              <ProtectedRoute roles={['empleado']}>
+                <EmployeeProfile />
               </ProtectedRoute>
             }
           />

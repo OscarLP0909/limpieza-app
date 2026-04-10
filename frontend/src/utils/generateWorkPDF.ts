@@ -54,14 +54,14 @@ export function generateWorkPDF(work: Work): void {
   autoTable(doc, {
     startY: 56,
     theme: 'grid',
-    head: [['Campo', 'Informacion']],
+    head: [['Campo', 'Información']],
     body: [
       ['Cliente', work.nombre ?? '—'],
       ['Tipo de servicio', work.tipo_servicio ?? '—'],
       ['Frecuencia', work.frecuencia ?? '—'],
-      ['Direccion del trabajo', work.direccion_trabajo ?? '—'],
+      ['Dirección del trabajo', work.direccion_trabajo ?? '—'],
       ['Fecha y hora', fechaFormateada],
-      ['Duracion estimada', work.duracion ? formatDuracion(work.duracion) : '—'],
+      ['Duración estimada', work.duracion ? formatDuracion(work.duracion) : '—'],
       ['Estado', 'ACEPTADO'],
     ],
     headStyles: {
@@ -94,7 +94,7 @@ export function generateWorkPDF(work: Work): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(0, 0, 0);
-  doc.text('Informacion economica', 14, afterTable);
+  doc.text('Información económica', 14, afterTable);
 
   const precioTotal = Number(work.precio ?? 0);
   const sena = precioTotal / 2;
@@ -104,7 +104,7 @@ export function generateWorkPDF(work: Work): void {
     theme: 'grid',
     body: [
       ['Precio total del trabajo', `${precioTotal.toFixed(2)} EUR`],
-      ['Sena a abonar (50%)', `${sena.toFixed(2)} EUR`],
+      ['Seña a abonar (50%)', `${sena.toFixed(2)} EUR`],
       ['Resto al finalizar el servicio', `${sena.toFixed(2)} EUR`],
     ],
     columnStyles: {
@@ -124,7 +124,7 @@ export function generateWorkPDF(work: Work): void {
   const afterEcon = (doc as DocWithTable).lastAutoTable.finalY + 10;
 
   const noteText =
-    'AVISO: La sena debera abonarse antes del inicio del servicio. ' +
+    'AVISO: La seña deberá abonarse antes del inicio del servicio. ' +
     'El importe restante se pagara al finalizar el trabajo.';
 
   const noteMaxWidth = pageW - 28 - 8; // box width minus horizontal padding
@@ -146,8 +146,13 @@ export function generateWorkPDF(work: Work): void {
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
   doc.setFont('helvetica', 'normal');
-  doc.text('2026 LimpiezaPro - Documento generado automaticamente', 14, pageH - 10);
+  doc.text('2026 LimpiezaPro - Documento generado automáticamente', 14, pageH - 10);
   doc.text(`Trabajo #${work.id}`, pageW - 14, pageH - 10, { align: 'right' });
 
-  doc.save(`LimpiezaPro-Trabajo-${work.id}.pdf`);
+  const slug = (str: string) =>
+    str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+  const cliente = work.nombre ? slug(work.nombre) : 'cliente';
+  const servicio = work.tipo_servicio ? slug(work.tipo_servicio) : 'servicio';
+  doc.save(`LimpiezaPro-${work.id}-${cliente}-${servicio}.pdf`);
 }

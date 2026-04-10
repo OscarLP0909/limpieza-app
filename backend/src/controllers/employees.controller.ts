@@ -15,7 +15,54 @@ interface EmployeeRow extends RowDataPacket {
     user_id: number
 }
 
-export const getEmployees = async (req: Request, res: Response, next: NextFunction) => {
+export const getMyEmployeeProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user_id = (req as any).user!.id;
+        const [rows] = await db.query<EmployeeRow[]>(
+            'SELECT e.id, e.nombre, e.apellidos, e.telefono, e.iban, e.nif, e.direccion, u.email FROM Employees e JOIN Users u ON e.user_id = u.id WHERE e.user_id = ?',
+            [user_id]
+        );
+        if (rows.length === 0) return res.status(404).json({ message: 'Employee not found' });
+        return res.status(200).json(rows[0]);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateMyEmployeeProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user_id = (req as any).user!.id;
+        const { nombre, apellidos, telefono, direccion, email, password } = req.body;
+        if (!nombre && !apellidos && !telefono && !direccion && !email && !password) {
+            return res.status(400).json({ message: 'At least one field is required' });
+        }
+        if (password && password.length < 6) {
+            return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+        }
+        const [rows] = await db.query<EmployeeRow[]>('SELECT id FROM Employees WHERE user_id = ?', [user_id]);
+        if (rows.length === 0) return res.status(404).json({ message: 'Employee not found' });
+
+        if (email) {
+            const [existEmail] = await db.query<EmployeeRow[]>('SELECT id FROM Users WHERE email = ? AND id != ?', [email, user_id]);
+            if (existEmail.length > 0) return res.status(400).json({ message: 'Email already in use' });
+        }
+
+        const hashedPwd = password ? await bcrypt.hash(password, 10) : undefined;
+        await db.query(
+            'UPDATE Users SET email = COALESCE(?, email), password = COALESCE(?, password) WHERE id = ?',
+            [email ?? null, hashedPwd ?? null, user_id]
+        );
+        await db.query(
+            'UPDATE Employees SET nombre = COALESCE(?, nombre), apellidos = COALESCE(?, apellidos), telefono = COALESCE(?, telefono), direccion = COALESCE(?, direccion) WHERE user_id = ?',
+            [nombre ?? null, apellidos ?? null, telefono ?? null, direccion ?? null, user_id]
+        );
+        return res.status(200).json({ message: 'Perfil actualizado correctamente' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getEmployees = async (_req: Request, res: Response, next: NextFunction) => {
     try {
         const [rows] = await db.query<EmployeeRow[]>('SELECT e.id, e.nombre, e.apellidos, u.email, e.telefono, e.iban, e.nif, e.direccion, e.status FROM Employees e JOIN Users u ON e.user_id = u.id');
         return res.status(200).json(rows);

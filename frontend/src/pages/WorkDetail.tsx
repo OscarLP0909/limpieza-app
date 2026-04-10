@@ -14,6 +14,7 @@ function StatusBadge({ estado }: { estado: Work['estado'] }) {
     aceptado: 'badge-aceptado',
     rechazado: 'badge-rechazado',
     cancelado: 'badge-cancelado',
+    cancelacion_solicitada: 'badge-cancelacion',
   };
   const labels: Record<string, string> = {
     creado: 'Pendiente',
@@ -22,10 +23,12 @@ function StatusBadge({ estado }: { estado: Work['estado'] }) {
     aceptado: 'Aceptado',
     rechazado: 'Rechazado',
     cancelado: 'Cancelado',
+    cancelacion_solicitada: 'Cancelación solicitada',
   };
+  const normalizado = (estado as string | null) === null ? 'pendiente' : estado;
   return (
-    <span className={`text-sm ${classes[estado] ?? 'badge-cancelado'}`}>
-      {labels[estado] ?? estado}
+    <span className={`text-sm ${classes[normalizado] ?? 'badge-cancelado'}`}>
+      {labels[normalizado] ?? normalizado}
     </span>
   );
 }
@@ -41,6 +44,7 @@ export default function WorkDetail() {
   const [duracion, setDuracion] = useState('');
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -95,6 +99,25 @@ export default function WorkDetail() {
       setError(msg);
     } finally {
       setAssigning(false);
+    }
+  };
+
+  const handleAdminCancel = async () => {
+    if (!window.confirm('¿Seguro que quieres cancelar este trabajo? Se notificará al cliente.')) return;
+    setCancelling(true);
+    setError('');
+    try {
+      await api.patch(`/works/${id}/admin-cancel`);
+      const res = await api.get<Work>(`/works/${id}`);
+      setWork(res.data);
+      setSuccess('Trabajo cancelado y cliente notificado');
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Error al cancelar el trabajo';
+      setError(msg);
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -295,10 +318,27 @@ export default function WorkDetail() {
 
       {/* Already presupuestado / aceptado message for admin */}
       {canAssign && work.estado !== 'pendiente' && work.estado !== 'creado' && (work.estado as string | null) !== null && (
-        <div className="card p-4 bg-gray-50 dark:bg-gray-700/30">
+        <div className="card p-4 bg-gray-50 dark:bg-gray-700/30 space-y-3">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Este trabajo está en estado <strong>{work.estado}</strong>. No se pueden asignar más empleados.
           </p>
+          {(work.estado === 'aceptado' || work.estado === 'cancelacion_solicitada') && (
+            <>
+              {error && (
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              )}
+              {success && (
+                <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
+              )}
+              <button
+                onClick={handleAdminCancel}
+                disabled={cancelling}
+                className="btn-danger text-sm py-1.5 px-4"
+              >
+                {cancelling ? 'Cancelando...' : 'Cancelar trabajo'}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
