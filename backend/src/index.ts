@@ -10,6 +10,8 @@ import serviceRoutes from './routes/services.routes'
 import employeeRoutes from './routes/employees.routes';
 import clientRoutes from './routes/clients.routes';
 import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 
 
@@ -33,6 +35,8 @@ app.post('/clients-test', (req, res) => {
     res.status(200).json({ message: 'ok' });
 });
 app.use('/clients', clientRoutes);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
