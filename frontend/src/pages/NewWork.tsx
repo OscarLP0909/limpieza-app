@@ -4,17 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import type { Service } from '../types';
 
-// Frecuencias — deben coincidir con los IDs de la tabla Frecuencia en BD
-const FRECUENCIAS = [
-  { id: 1, nombre: 'Puntual (una vez)' },
-  { id: 2, nombre: 'Semanal' },
-  { id: 3, nombre: 'Quincenal' },
-  { id: 4, nombre: 'Mensual' },
-];
+interface Frequency {
+  id: number;
+  frecuencia: string;
+}
 
 export default function NewWork() {
   const navigate = useNavigate();
   const [services, setServices] = useState<Service[]>([]);
+  const [frequencies, setFrequencies] = useState<Frequency[]>([]);
   const [loadingServices, setLoadingServices] = useState(true);
 
   const [form, setForm] = useState({
@@ -28,10 +26,15 @@ export default function NewWork() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    api
-      .get<Service[]>('/services')
-      .then((res) => setServices(res.data))
-      .catch(() => setServices([]))
+    Promise.all([
+      api.get<{ data: Service[]; pagination: unknown }>('/services', { params: { limit: 100 } }),
+      api.get<Frequency[]>('/frequencies'),
+    ])
+      .then(([svcRes, freqRes]) => {
+        setServices(svcRes.data.data);
+        setFrequencies(freqRes.data);
+      })
+      .catch(() => {})
       .finally(() => setLoadingServices(false));
   }, []);
 
@@ -131,9 +134,9 @@ export default function NewWork() {
               className="input"
             >
               <option value="">Selecciona la frecuencia...</option>
-              {FRECUENCIAS.map((f) => (
+              {frequencies.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.nombre}
+                  {f.frecuencia}
                 </option>
               ))}
             </select>

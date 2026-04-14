@@ -62,10 +62,22 @@ export const updateMyEmployeeProfile = async (req: Request, res: Response, next:
     }
 };
 
-export const getEmployees = async (_req: Request, res: Response, next: NextFunction) => {
+export const getEmployees = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const [rows] = await db.query<EmployeeRow[]>('SELECT e.id, e.nombre, e.apellidos, u.email, e.telefono, e.iban, e.nif, e.direccion, e.status FROM Employees e JOIN Users u ON e.user_id = u.id');
-        return res.status(200).json(rows);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+
+        const [rows] = await db.query<EmployeeRow[]>(
+            'SELECT e.id, e.nombre, e.apellidos, u.email, e.telefono, e.iban, e.nif, e.direccion, e.status FROM Employees e JOIN Users u ON e.user_id = u.id LIMIT ? OFFSET ?',
+            [limit, offset]
+        );
+        const [total] = await db.query<RowDataPacket[]>('SELECT COUNT(*) as total FROM Employees');
+
+        return res.status(200).json({
+            data: rows,
+            pagination: { page, limit, total: total[0].total, totalPages: Math.ceil(total[0].total / limit) }
+        });
     } catch (error) {
         next(error);
     }

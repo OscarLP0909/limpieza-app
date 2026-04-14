@@ -15,13 +15,32 @@ interface ClientRow extends RowDataPacket {
 
 export const getClients = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const [rows] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono, u.email FROM Clients c JOIN Users u on c.user_id = u.id');
-        return res.status(200).json(rows);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+
+        const [rows] = await db.query<ClientRow[]>(
+            'SELECT c.nombre, c.apellidos, c.direccion, c.telefono, u.email FROM Clients c JOIN Users u on c.user_id = u.id LIMIT ? OFFSET ?',
+            [limit, offset]
+        );
+
+        const [total] = await db.query<RowDataPacket[]>(
+            'SELECT COUNT(*) as total FROM Clients c JOIN Users u on c.user_id = u.id'
+        );
+
+        return res.status(200).json({
+            data: rows,
+            pagination: {
+                page,
+                limit,
+                total: total[0].total,
+                totalPages: Math.ceil(total[0].total / limit)
+            }
+        });
     } catch (error) {
         next(error);
     }
 };
-
 export const createClient = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { nombre, apellidos, direccion, telefono, email, password } = req.body;

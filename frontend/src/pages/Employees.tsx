@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import type { Employee } from '../types';
 import { useAuth } from '../context/AuthContext';
+import Pagination from '../components/Pagination';
+
+const LIMIT = 10;
+
+interface PaginatedEmployees {
+  data: Employee[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
 
 interface EmployeeForm {
   nombre: string;
@@ -68,18 +76,26 @@ export default function Employees() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const fetchEmployees = () => {
+  const fetchEmployees = (p: number) => {
+    setLoading(true);
     api
-      .get<Employee[]>('/employees')
-      .then((res) => setEmployees(res.data))
+      .get<PaginatedEmployees>('/employees', { params: { page: p, limit: LIMIT } })
+      .then((res) => {
+        setEmployees(res.data.data);
+        setTotalPages(res.data.pagination.totalPages);
+        setTotal(res.data.pagination.total);
+      })
       .catch(() => setEmployees([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    fetchEmployees(page);
+  }, [page]);
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -122,7 +138,7 @@ export default function Employees() {
         await api.post('/employees', payload);
       }
       setShowModal(false);
-      fetchEmployees();
+      fetchEmployees(page);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -138,7 +154,7 @@ export default function Employees() {
     setDeletingId(id);
     try {
       await api.delete(`/employees/${id}`);
-      fetchEmployees();
+      fetchEmployees(page);
     } catch {
       alert('Error al eliminar');
     } finally {
@@ -186,7 +202,7 @@ export default function Employees() {
       <div className="card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {filtered.length} empleado{filtered.length !== 1 ? 's' : ''}
+            {total} empleado{total !== 1 ? 's' : ''}
           </p>
         </div>
         {filtered.length === 0 ? (
@@ -247,6 +263,14 @@ export default function Employees() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={LIMIT}
+          onPage={setPage}
+        />
       </div>
 
       {/* Modal */}

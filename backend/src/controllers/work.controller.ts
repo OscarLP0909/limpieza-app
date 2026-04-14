@@ -18,10 +18,22 @@ interface WorkRow extends RowDataPacket {
     presupuesto_expira_en: Date;
 };
 
-export const getWorks = async (_req: Request, res: Response, next: NextFunction) => {
+export const getWorks = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id');
-        return res.status(200).json(works);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+
+        const [works] = await db.query<WorkRow[]>(
+            'SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id LIMIT ? OFFSET ?',
+            [limit, offset]
+        );
+        const [total] = await db.query<RowDataPacket[]>('SELECT COUNT(*) as total FROM Trabajos');
+
+        return res.status(200).json({
+            data: works,
+            pagination: { page, limit, total: total[0].total, totalPages: Math.ceil(total[0].total / limit) }
+        });
     } catch (error) {
         next(error);
     }
@@ -129,11 +141,25 @@ export const createWork = async (req: Request, res: Response, next: NextFunction
 export const getWorksByClientId = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const id_cliente = (req as any).user!.client_id;
-        if (!id_cliente) {
-            return res.status(403).json({ message: 'Forbidden' });
-        }
-        const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id WHERE t.id_cliente = ?', [id_cliente]);
-        return res.status(200).json(works);
+        if (!id_cliente) return res.status(403).json({ message: 'Forbidden' });
+
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+
+        const [works] = await db.query<WorkRow[]>(
+            'SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id WHERE t.id_cliente = ? LIMIT ? OFFSET ?',
+            [id_cliente, limit, offset]
+        );
+        const [total] = await db.query<RowDataPacket[]>(
+            'SELECT COUNT(*) as total FROM Trabajos WHERE id_cliente = ?',
+            [id_cliente]
+        );
+
+        return res.status(200).json({
+            data: works,
+            pagination: { page, limit, total: total[0].total, totalPages: Math.ceil(total[0].total / limit) }
+        });
     } catch (error) {
         next(error);
     }
@@ -484,11 +510,24 @@ export const adminCancelWork = async (req: Request, res: Response, next: NextFun
 export const getAssignedWorks = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user_id = (req as any).user!.id;
-        const [rows] = await db.query<WorkRow[]>('SELECT t.id, c.nombre as Nombre_Cliente, t.direccion_trabajo as Direccion, s.tipo_servicio, t.fecha_hora as Fecha, t.estado FROM Trabajos t JOIN Trabajo_Empleado te ON te.id_trabajo = t.id JOIN Clients c ON c.id = t.id_cliente JOIN Tipo_Servicio s ON s.id = t.id_tipo_servicio JOIN Employees e ON e.id = te.id_empleado WHERE e.user_id = ? AND t.estado IN (\'aceptado\', \'cancelacion_solicitada\', \'cancelado\')', [user_id]);
-        if (rows.length === 0) {
-            return res.status(200).json(rows);
-        }
-        return res.status(200).json(rows);
+
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+
+        const [rows] = await db.query<WorkRow[]>(
+            "SELECT t.id, c.nombre as Nombre_Cliente, t.direccion_trabajo as Direccion, s.tipo_servicio, t.fecha_hora as Fecha, t.estado FROM Trabajos t JOIN Trabajo_Empleado te ON te.id_trabajo = t.id JOIN Clients c ON c.id = t.id_cliente JOIN Tipo_Servicio s ON s.id = t.id_tipo_servicio JOIN Employees e ON e.id = te.id_empleado WHERE e.user_id = ? AND t.estado IN ('aceptado', 'cancelacion_solicitada', 'cancelado') LIMIT ? OFFSET ?",
+            [user_id, limit, offset]
+        );
+        const [total] = await db.query<RowDataPacket[]>(
+            "SELECT COUNT(*) as total FROM Trabajos t JOIN Trabajo_Empleado te ON te.id_trabajo = t.id JOIN Employees e ON e.id = te.id_empleado WHERE e.user_id = ? AND t.estado IN ('aceptado', 'cancelacion_solicitada', 'cancelado')",
+            [user_id]
+        );
+
+        return res.status(200).json({
+            data: rows,
+            pagination: { page, limit, total: total[0].total, totalPages: Math.ceil(total[0].total / limit) }
+        });
     } catch (error) {
         next(error);
     }

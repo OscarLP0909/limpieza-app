@@ -4,7 +4,7 @@ import { authenticateToken, authorizeRoles } from "../middlewares/auth.middlewar
 
 const router = Router();
 
-router.get('/', authenticateToken, authorizeRoles('admin'), getFrequencies);
+router.get('/', authenticateToken, getFrequencies);
 router.post('/', authenticateToken, authorizeRoles('admin'), createFrequencies);
 router.patch('/:id', authenticateToken, authorizeRoles('admin'), updateFrequencies);
 router.delete('/:id', authenticateToken, authorizeRoles('admin'), deleteFrequency);

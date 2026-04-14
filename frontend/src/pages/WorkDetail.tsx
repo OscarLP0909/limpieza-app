@@ -53,13 +53,13 @@ export default function WorkDetail() {
   useEffect(() => {
     const requests: Promise<unknown>[] = [api.get<Work>(`/works/${id}`)];
     if (canAssign) {
-      requests.push(api.get<Employee[]>('/employees'));
+      requests.push(api.get<{ data: Employee[]; pagination: unknown }>('/employees', { params: { limit: 500 } }));
     }
 
     Promise.all(requests)
       .then(([workRes, empRes]) => {
         setWork((workRes as { data: Work }).data);
-        if (empRes) setEmployees((empRes as { data: Employee[] }).data);
+        if (empRes) setEmployees((empRes as { data: { data: Employee[] } }).data.data);
       })
       .catch(() => navigate('/works'))
       .finally(() => setLoading(false));

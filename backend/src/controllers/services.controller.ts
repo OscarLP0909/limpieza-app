@@ -10,11 +10,22 @@ interface ServiceRow extends RowDataPacket {
 
 export const getServices = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const [rowsServices] = await db.query<ServiceRow[]>('SELECT id, tipo_servicio, precio FROM Tipo_Servicio');
-        if (rowsServices.length === 0) {
-            return res.status(200).json(rowsServices);
-        }
-        return res.status(200).json(rowsServices);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+
+        const [rowsServices] = await db.query<ServiceRow[]>(
+            'SELECT id, tipo_servicio, precio FROM Tipo_Servicio LIMIT ? OFFSET ?',
+            [limit, offset]
+        );
+        const [total] = await db.query<RowDataPacket[]>(
+            'SELECT COUNT(*) as total FROM Tipo_Servicio'
+        );
+
+        return res.status(200).json({
+            data: rowsServices,
+            pagination: { page, limit, total: total[0].total, totalPages: Math.ceil(total[0].total / limit) }
+        });
     } catch (error) {
         next(error);
     }

@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import type { Client } from '../types';
 import { useAuth } from '../context/AuthContext';
+import Pagination from '../components/Pagination';
+
+const LIMIT = 10;
+
+interface PaginatedClients {
+  data: Client[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
 
 interface ClientForm {
   nombre: string;
@@ -62,18 +70,26 @@ export default function Clients() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const fetchClients = () => {
+  const fetchClients = (p: number) => {
+    setLoading(true);
     api
-      .get<Client[]>('/clients')
-      .then((res) => setClients(res.data))
+      .get<PaginatedClients>('/clients', { params: { page: p, limit: LIMIT } })
+      .then((res) => {
+        setClients(res.data.data);
+        setTotalPages(res.data.pagination.totalPages);
+        setTotal(res.data.pagination.total);
+      })
       .catch(() => setClients([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    fetchClients();
-  }, []);
+    fetchClients(page);
+  }, [page]);
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -113,7 +129,7 @@ export default function Clients() {
         await api.post('/clients', payload);
       }
       setShowModal(false);
-      fetchClients();
+      fetchClients(page);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -129,7 +145,7 @@ export default function Clients() {
     setDeletingId(id);
     try {
       await api.delete(`/clients/${id}`);
-      fetchClients();
+      fetchClients(page);
     } catch {
       alert('Error al eliminar');
     } finally {
@@ -177,7 +193,7 @@ export default function Clients() {
       <div className="card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {filtered.length} cliente{filtered.length !== 1 ? 's' : ''}
+            {total} cliente{total !== 1 ? 's' : ''}
           </p>
         </div>
         {filtered.length === 0 ? (
@@ -232,6 +248,14 @@ export default function Clients() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={LIMIT}
+          onPage={setPage}
+        />
       </div>
 
       {/* Modal */}

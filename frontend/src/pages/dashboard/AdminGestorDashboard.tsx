@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
-import type { Work, Employee, Client } from '../../types';
+import type { Work } from '../../types';
 
 function StatusBadge({ estado }: { estado: Work['estado'] }) {
   const classes: Record<string, string> = {
@@ -34,22 +34,29 @@ interface Stat {
   icon: string;
 }
 
+interface Paginated<T> {
+  data: T[];
+  pagination: { total: number; totalPages: number; page: number; limit: number };
+}
+
 export default function AdminGestorDashboard() {
   const [works, setWorks] = useState<Work[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [totalWorks, setTotalWorks] = useState(0);
+  const [totalEmployees, setTotalEmployees] = useState(0);
+  const [totalClients, setTotalClients] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      api.get<Work[]>('/works'),
-      api.get<Employee[]>('/employees'),
-      api.get<Client[]>('/clients'),
+      api.get<Paginated<Work>>('/works', { params: { limit: 500 } }),
+      api.get<Paginated<Employee>>('/employees', { params: { limit: 1 } }),
+      api.get<Paginated<Client>>('/clients', { params: { limit: 1 } }),
     ])
       .then(([worksRes, empRes, cliRes]) => {
-        setWorks(worksRes.data);
-        setEmployees(empRes.data);
-        setClients(cliRes.data);
+        setWorks(worksRes.data.data);
+        setTotalWorks(worksRes.data.pagination.total);
+        setTotalEmployees(empRes.data.pagination.total);
+        setTotalClients(cliRes.data.pagination.total);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -58,7 +65,7 @@ export default function AdminGestorDashboard() {
   const stats: Stat[] = [
     {
       label: 'Total trabajos',
-      value: works.length,
+      value: totalWorks,
       color: 'text-blue-700 dark:text-blue-300',
       bg: 'bg-blue-50 dark:bg-blue-900/30',
       icon: '🧹',
@@ -79,14 +86,14 @@ export default function AdminGestorDashboard() {
     },
     {
       label: 'Empleados',
-      value: employees.length,
+      value: totalEmployees,
       color: 'text-purple-700 dark:text-purple-300',
       bg: 'bg-purple-50 dark:bg-purple-900/30',
       icon: '👷',
     },
     {
       label: 'Clientes',
-      value: clients.length,
+      value: totalClients,
       color: 'text-indigo-700 dark:text-indigo-300',
       bg: 'bg-indigo-50 dark:bg-indigo-900/30',
       icon: '👤',

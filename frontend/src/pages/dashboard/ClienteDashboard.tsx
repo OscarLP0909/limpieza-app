@@ -239,8 +239,8 @@ export default function ClienteDashboard() {
   const fetchWorks = () => {
     setLoading(true);
     api
-      .get<Work[]>('/works/my')
-      .then((res) => setWorks(res.data))
+      .get<{ data: Work[]; pagination: unknown }>('/works/my', { params: { limit: 500 } })
+      .then((res) => setWorks(res.data.data))
       .catch(() => setWorks([]))
       .finally(() => setLoading(false));
   };

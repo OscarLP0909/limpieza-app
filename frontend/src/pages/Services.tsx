@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import type { Service } from '../types';
+import Pagination from '../components/Pagination';
+
+const LIMIT = 10;
+
+interface PaginatedServices {
+  data: Service[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
 
 interface ServiceForm {
   tipo_servicio: string;
@@ -46,18 +54,26 @@ export default function Services() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const fetchServices = () => {
+  const fetchServices = (p: number) => {
+    setLoading(true);
     api
-      .get<Service[]>('/services')
-      .then((res) => setServices(res.data))
+      .get<PaginatedServices>('/services', { params: { page: p, limit: LIMIT } })
+      .then((res) => {
+        setServices(res.data.data);
+        setTotalPages(res.data.pagination.totalPages);
+        setTotal(res.data.pagination.total);
+      })
       .catch(() => setServices([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    fetchServices();
-  }, []);
+    fetchServices(page);
+  }, [page]);
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -92,7 +108,7 @@ export default function Services() {
         await api.post('/services', payload);
       }
       setShowModal(false);
-      fetchServices();
+      fetchServices(page);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -108,7 +124,7 @@ export default function Services() {
     setDeletingId(id);
     try {
       await api.delete(`/services/${id}`);
-      fetchServices();
+      fetchServices(page);
     } catch {
       alert('Error al eliminar');
     } finally {
@@ -140,33 +156,43 @@ export default function Services() {
           <p className="text-sm">No hay servicios creados</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {services.map((svc) => (
-            <div key={svc.id} className="card p-5 flex items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold text-gray-900 dark:text-white">{svc.tipo_servicio}</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">
-                  {Number(svc.precio).toFixed(2)} €
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">por empleado</p>
+        <div className="card overflow-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
+            {services.map((svc) => (
+              <div key={svc.id} className="card p-5 flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-gray-900 dark:text-white">{svc.tipo_servicio}</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">
+                    {Number(svc.precio).toFixed(2)} €
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">por empleado</p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    onClick={() => openEdit(svc)}
+                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(svc.id)}
+                    disabled={deletingId === svc.id}
+                    className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline disabled:opacity-50"
+                  >
+                    {deletingId === svc.id ? '...' : 'Eliminar'}
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <button
-                  onClick={() => openEdit(svc)}
-                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(svc.id)}
-                  disabled={deletingId === svc.id}
-                  className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline disabled:opacity-50"
-                >
-                  {deletingId === svc.id ? '...' : 'Eliminar'}
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            limit={LIMIT}
+            onPage={setPage}
+          />
         </div>
       )}
 

@@ -30,8 +30,8 @@ export default function EmpleadoDashboard() {
 
   useEffect(() => {
     api
-      .get<Work[]>('/works/assigned')
-      .then((res) => setWorks(res.data))
+      .get<{ data: Work[]; pagination: unknown }>('/works/assigned', { params: { limit: 500 } })
+      .then((res) => setWorks(res.data.data))
       .catch(() => setWorks([]))
       .finally(() => setLoading(false));
   }, []);

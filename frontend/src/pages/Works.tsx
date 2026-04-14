@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import type { Work } from '../types';
 import { generateWorkPDF } from '../utils/generateWorkPDF';
+import Pagination from '../components/Pagination';
+
+const LIMIT = 10;
+
+interface PaginatedWorks {
+  data: Work[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
 
 function StatusBadge({ estado }: { estado: Work['estado'] }) {
   const classes: Record<string, string> = {
@@ -35,14 +43,26 @@ export default function Works() {
   const [filter, setFilter] = useState<FilterType>('todos');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  useEffect(() => {
+  const fetchWorks = (p: number) => {
+    setLoading(true);
     api
-      .get<Work[]>('/works')
-      .then((res) => setWorks(res.data))
+      .get<PaginatedWorks>('/works', { params: { page: p, limit: LIMIT } })
+      .then((res) => {
+        setWorks(res.data.data);
+        setTotalPages(res.data.pagination.totalPages);
+        setTotal(res.data.pagination.total);
+      })
       .catch(() => setWorks([]))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchWorks(page);
+  }, [page]);
 
   const filtered = works.filter((w) => {
     const matchFilter = filter === 'todos' || w.estado === filter;
@@ -94,7 +114,7 @@ export default function Works() {
       <div className="card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-            {filtered.length} trabajo{filtered.length !== 1 ? 's' : ''}
+            {total} trabajo{total !== 1 ? 's' : ''}
           </h2>
         </div>
 
@@ -173,6 +193,14 @@ export default function Works() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={LIMIT}
+          onPage={setPage}
+        />
       </div>
     </div>
   );
