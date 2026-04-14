@@ -20,8 +20,20 @@ interface WorkRow extends RowDataPacket {
 
 export const getWorks = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id');
-        return res.status(200).json(works);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+        const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id LIMIT ? OFFSET ?', [limit, offset]);
+        const [total] = await db.query<RowDataPacket[]>('SELECT COUNT(*) as total FROM Trabajos');
+        return res.status(200).json({
+            data: works,
+            pagination: {
+                page,
+                limit,
+                total: total[0].total,
+                totalPages: Math.ceil(total[0].total / limit)
+            }
+        });
     } catch (error) {
         next(error);
     }
