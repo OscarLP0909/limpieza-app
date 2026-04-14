@@ -14,6 +14,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Empleados', path: '/employees', icon: '👷' },
     { label: 'Clientes', path: '/clients', icon: '👤' },
     { label: 'Servicios', path: '/services', icon: '📋' },
+    { label: 'Frecuencias', path: '/frequencies', icon: '🔁' },
     { label: 'Usuarios', path: '/staff-users', icon: '🔑' },
   ],
   gestor: [

@@ -18,6 +18,7 @@ import EmpleadoDashboard from './pages/dashboard/EmpleadoDashboard';
 import ClientProfile from './pages/ClientProfile';
 import EmployeeProfile from './pages/EmployeeProfile';
 import StaffUsers from './pages/StaffUsers';
+import Frequencies from './pages/Frequencies';
 
 function DashboardRouter() {
   const { user } = useAuth();
@@ -97,6 +98,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['admin']}>
                 <StaffUsers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="frequencies"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <Frequencies />
               </ProtectedRoute>
             }
           />

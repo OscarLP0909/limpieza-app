@@ -10,6 +10,7 @@ import serviceRoutes from './routes/services.routes';
 import employeeRoutes from './routes/employees.routes';
 import clientRoutes from './routes/clients.routes';
 import userRoutes from './routes/users.routes';
+import frequencyRoutes from './routes/frequency.routes';
 import './cron/presupuesto.cron';
 import cookieParser from 'cookie-parser';
 
@@ -31,11 +32,9 @@ app.use('/auth', authRoutes);
 app.use('/works', workRoutes);
 app.use('/services', serviceRoutes);
 app.use('/employees', employeeRoutes);
-app.post('/clients-test', (req, res) => {
-    res.status(200).json({ message: 'ok' });
-});
 app.use('/clients', clientRoutes);
 app.use('/users', userRoutes);
+app.use('/frequencies', frequencyRoutes);
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });

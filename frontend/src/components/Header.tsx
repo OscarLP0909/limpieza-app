@@ -19,6 +19,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/profile': 'Mi Perfil',
   '/employee-profile': 'Mi Perfil',
   '/staff-users': 'Usuarios',
+  '/frequencies': 'Frecuencias',
 };
 
 interface HeaderProps {
