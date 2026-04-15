@@ -1,4 +1,5 @@
 import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -38,6 +39,17 @@ app.use('/frequencies', frequencyRoutes);
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
+});
+
+// Global error handler — must be last middleware
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    console.error(err);
+    const isProd = process.env.NODE_ENV === 'production';
+    res.status(500).json({
+        message: isProd ? 'Internal server error' : err.message,
+        ...(!isProd && { stack: err.stack }),
+    });
 });
 
 const PORT = process.env.PORT || 3000;

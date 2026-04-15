@@ -85,7 +85,10 @@ export const deleteService = async (req: Request, res: Response, next: NextFunct
         }
         await db.query('DELETE FROM Tipo_Servicio WHERE id = ?', [id]);
         return res.status(200).json({ message: 'Service deleted successfully' });
-    } catch (error) {
+    } catch (error: unknown) {
+        if ((error as { code?: string }).code === 'ER_ROW_IS_REFERENCED_2') {
+            return res.status(409).json({ message: 'No se puede eliminar el servicio porque tiene trabajos asociados' });
+        }
         next(error);
     }
 };

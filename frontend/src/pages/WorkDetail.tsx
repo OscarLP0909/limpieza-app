@@ -5,6 +5,7 @@ import type { Work, Employee } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { generateWorkPDF } from '../utils/generateWorkPDF';
 import { formatDuracion } from '../utils/format';
+import { useConfirm } from '../context/ConfirmContext';
 
 function StatusBadge({ estado }: { estado: Work['estado'] }) {
   const classes: Record<string, string> = {
@@ -48,6 +49,7 @@ export default function WorkDetail() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const confirm = useConfirm();
   const canAssign = user?.role === 'admin' || user?.role === 'gestor';
 
   useEffect(() => {
@@ -103,7 +105,7 @@ export default function WorkDetail() {
   };
 
   const handleAdminCancel = async () => {
-    if (!window.confirm('¿Seguro que quieres cancelar este trabajo? Se notificará al cliente.')) return;
+    if (!await confirm('¿Seguro que quieres cancelar este trabajo? Se notificará al cliente.')) return;
     setCancelling(true);
     setError('');
     try {

@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../api/axios';
 import type { Employee } from '../types';
 import { useAuth } from '../context/AuthContext';
 import Pagination from '../components/Pagination';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 const LIMIT = 10;
 
@@ -65,6 +67,8 @@ function Modal({
 
 export default function Employees() {
   const { user } = useAuth();
+  const { addToast } = useToast();
+  const confirm = useConfirm();
   const isAdmin = user?.role === 'admin';
 
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -76,14 +80,23 @@ export default function Employees() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const isFirstRender = useRef(true);
 
-  const fetchEmployees = (p: number) => {
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const fetchEmployees = (p: number, s: string) => {
     setLoading(true);
+    const params: Record<string, string | number> = { page: p, limit: LIMIT };
+    if (s) params.search = s;
     api
-      .get<PaginatedEmployees>('/employees', { params: { page: p, limit: LIMIT } })
+      .get<PaginatedEmployees>('/employees', { params })
       .then((res) => {
         setEmployees(res.data.data);
         setTotalPages(res.data.pagination.totalPages);
@@ -94,8 +107,19 @@ export default function Employees() {
   };
 
   useEffect(() => {
-    fetchEmployees(page);
-  }, [page]);
+    if (isFirstRender.current) return;
+    setPage(1);
+    fetchEmployees(1, debouncedSearch);
+  }, [debouncedSearch]); // eslint-disable-line
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      fetchEmployees(1, '');
+      return;
+    }
+    fetchEmployees(page, debouncedSearch);
+  }, [page]); // eslint-disable-line
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -138,7 +162,7 @@ export default function Employees() {
         await api.post('/employees', payload);
       }
       setShowModal(false);
-      fetchEmployees(page);
+      fetchEmployees(page, debouncedSearch);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -150,25 +174,17 @@ export default function Employees() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Seguro que quieres eliminar este empleado?')) return;
+    if (!await confirm('¿Seguro que quieres eliminar este empleado? Esta acción no se puede deshacer.')) return;
     setDeletingId(id);
     try {
       await api.delete(`/employees/${id}`);
-      fetchEmployees(page);
+      fetchEmployees(page, debouncedSearch);
     } catch {
-      alert('Error al eliminar');
+      addToast('Error al eliminar el empleado', 'error');
     } finally {
       setDeletingId(null);
     }
   };
-
-  const filtered = employees.filter(
-    (e) =>
-      !search ||
-      `${e.nombre} ${e.apellidos}`.toLowerCase().includes(search.toLowerCase()) ||
-      e.email.toLowerCase().includes(search.toLowerCase()) ||
-      e.nif.toLowerCase().includes(search.toLowerCase())
-  );
 
   if (loading) {
     return (
@@ -205,7 +221,7 @@ export default function Employees() {
             {total} empleado{total !== 1 ? 's' : ''}
           </p>
         </div>
-        {filtered.length === 0 ? (
+        {employees.length === 0 ? (
           <div className="py-16 text-center text-gray-500 dark:text-gray-400">
             <p className="text-3xl mb-2">👷</p>
             <p className="text-sm">No se encontraron empleados</p>
@@ -224,7 +240,7 @@ export default function Employees() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filtered.map((emp) => (
+                {employees.map((emp) => (
                   <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-4 font-medium text-gray-900 dark:text-white">
                       <div>{emp.nombre} {emp.apellidos}</div>
@@ -288,38 +304,38 @@ export default function Employees() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Nombre</label>
-                <input name="nombre" value={form.nombre} onChange={handleChange} className="input" required />
+                <input name="nombre" value={form.nombre} onChange={handleChange} className="input" maxLength={50} required />
               </div>
               <div>
                 <label className="label">Apellidos</label>
-                <input name="apellidos" value={form.apellidos} onChange={handleChange} className="input" required />
+                <input name="apellidos" value={form.apellidos} onChange={handleChange} className="input" maxLength={100} required />
               </div>
             </div>
             <div>
               <label className="label">Email</label>
-              <input name="email" type="email" value={form.email} onChange={handleChange} className="input" required />
+              <input name="email" type="email" value={form.email} onChange={handleChange} className="input" maxLength={100} required />
             </div>
             <div>
               <label className="label">{editingId ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña'}</label>
-              <input name="password" type="password" value={form.password} onChange={handleChange} className="input" placeholder="••••••••" />
+              <input name="password" type="password" value={form.password} onChange={handleChange} className="input" maxLength={100} placeholder="••••••••" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Teléfono</label>
-                <input name="telefono" value={form.telefono} onChange={handleChange} className="input" required />
+                <input name="telefono" value={form.telefono} onChange={handleChange} className="input" maxLength={20} required />
               </div>
               <div>
                 <label className="label">NIF</label>
-                <input name="nif" value={form.nif} onChange={handleChange} className="input" required />
+                <input name="nif" value={form.nif} onChange={handleChange} className="input" maxLength={20} required />
               </div>
             </div>
             <div>
               <label className="label">IBAN</label>
-              <input name="iban" value={form.iban} onChange={handleChange} className="input" required />
+              <input name="iban" value={form.iban} onChange={handleChange} className="input" maxLength={34} required />
             </div>
             <div>
               <label className="label">Dirección</label>
-              <input name="direccion" value={form.direccion} onChange={handleChange} className="input" required />
+              <input name="direccion" value={form.direccion} onChange={handleChange} className="input" maxLength={200} required />
             </div>
             {editingId !== null && (
               <div>

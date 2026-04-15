@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 interface StaffUser {
   id: number;
@@ -36,6 +38,8 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 }
 
 export default function StaffUsers() {
+  const { addToast } = useToast();
+  const confirm = useConfirm();
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -87,7 +91,7 @@ export default function StaffUsers() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Seguro que quieres eliminar este usuario?')) return;
+    if (!await confirm('¿Seguro que quieres eliminar este usuario? Esta acción no se puede deshacer.')) return;
     setDeletingId(id);
     try {
       await api.delete(`/users/${id}`);
@@ -96,7 +100,7 @@ export default function StaffUsers() {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         'Error al eliminar';
-      alert(msg);
+      addToast(msg, 'error');
     } finally {
       setDeletingId(null);
     }
@@ -207,6 +211,7 @@ export default function StaffUsers() {
                 name="email"
                 type="email"
                 className="input"
+                maxLength={100}
                 placeholder="usuario@empresa.com"
                 value={form.email}
                 onChange={handleChange}
@@ -219,6 +224,7 @@ export default function StaffUsers() {
                 name="password"
                 type="password"
                 className="input"
+                maxLength={100}
                 placeholder="Mínimo 6 caracteres"
                 value={form.password}
                 onChange={handleChange}

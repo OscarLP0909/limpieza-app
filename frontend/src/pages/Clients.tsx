@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../api/axios';
 import type { Client } from '../types';
 import { useAuth } from '../context/AuthContext';
 import Pagination from '../components/Pagination';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 const LIMIT = 10;
 
@@ -59,6 +61,8 @@ function Modal({
 
 export default function Clients() {
   const { user } = useAuth();
+  const { addToast } = useToast();
+  const confirm = useConfirm();
   const isAdmin = user?.role === 'admin';
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -70,14 +74,23 @@ export default function Clients() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const isFirstRender = useRef(true);
 
-  const fetchClients = (p: number) => {
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const fetchClients = (p: number, s: string) => {
     setLoading(true);
+    const params: Record<string, string | number> = { page: p, limit: LIMIT };
+    if (s) params.search = s;
     api
-      .get<PaginatedClients>('/clients', { params: { page: p, limit: LIMIT } })
+      .get<PaginatedClients>('/clients', { params })
       .then((res) => {
         setClients(res.data.data);
         setTotalPages(res.data.pagination.totalPages);
@@ -88,8 +101,19 @@ export default function Clients() {
   };
 
   useEffect(() => {
-    fetchClients(page);
-  }, [page]);
+    if (isFirstRender.current) return;
+    setPage(1);
+    fetchClients(1, debouncedSearch);
+  }, [debouncedSearch]); // eslint-disable-line
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      fetchClients(1, '');
+      return;
+    }
+    fetchClients(page, debouncedSearch);
+  }, [page]); // eslint-disable-line
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -129,7 +153,7 @@ export default function Clients() {
         await api.post('/clients', payload);
       }
       setShowModal(false);
-      fetchClients(page);
+      fetchClients(page, debouncedSearch);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -141,25 +165,17 @@ export default function Clients() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Seguro que quieres eliminar este cliente?')) return;
+    if (!await confirm('¿Seguro que quieres eliminar este cliente? Esta acción no se puede deshacer.')) return;
     setDeletingId(id);
     try {
       await api.delete(`/clients/${id}`);
-      fetchClients(page);
+      fetchClients(page, debouncedSearch);
     } catch {
-      alert('Error al eliminar');
+      addToast('Error al eliminar el cliente', 'error');
     } finally {
       setDeletingId(null);
     }
   };
-
-  const filtered = clients.filter(
-    (c) =>
-      !search ||
-      `${c.nombre} ${c.apellidos}`.toLowerCase().includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase()) ||
-      c.telefono.includes(search)
-  );
 
   if (loading) {
     return (
@@ -196,7 +212,7 @@ export default function Clients() {
             {total} cliente{total !== 1 ? 's' : ''}
           </p>
         </div>
-        {filtered.length === 0 ? (
+        {clients.length === 0 ? (
           <div className="py-16 text-center text-gray-500 dark:text-gray-400">
             <p className="text-3xl mb-2">👤</p>
             <p className="text-sm">No se encontraron clientes</p>
@@ -214,7 +230,7 @@ export default function Clients() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filtered.map((client) => (
+                {clients.map((client) => (
                   <tr key={client.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-4 font-medium text-gray-900 dark:text-white">
                       <div>{client.nombre} {client.apellidos}</div>
@@ -273,28 +289,28 @@ export default function Clients() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Nombre</label>
-                <input name="nombre" value={form.nombre} onChange={handleChange} className="input" required />
+                <input name="nombre" value={form.nombre} onChange={handleChange} className="input" maxLength={50} required />
               </div>
               <div>
                 <label className="label">Apellidos</label>
-                <input name="apellidos" value={form.apellidos} onChange={handleChange} className="input" required />
+                <input name="apellidos" value={form.apellidos} onChange={handleChange} className="input" maxLength={100} required />
               </div>
             </div>
             <div>
               <label className="label">Email</label>
-              <input name="email" type="email" value={form.email} onChange={handleChange} className="input" required />
+              <input name="email" type="email" value={form.email} onChange={handleChange} className="input" maxLength={100} required />
             </div>
             <div>
               <label className="label">{editingId ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña'}</label>
-              <input name="password" type="password" value={form.password} onChange={handleChange} className="input" placeholder="••••••••" />
+              <input name="password" type="password" value={form.password} onChange={handleChange} className="input" maxLength={100} placeholder="••••••••" />
             </div>
             <div>
               <label className="label">Teléfono</label>
-              <input name="telefono" value={form.telefono} onChange={handleChange} className="input" required />
+              <input name="telefono" value={form.telefono} onChange={handleChange} className="input" maxLength={20} required />
             </div>
             <div>
               <label className="label">Dirección</label>
-              <input name="direccion" value={form.direccion} onChange={handleChange} className="input" required />
+              <input name="direccion" value={form.direccion} onChange={handleChange} className="input" maxLength={200} required />
             </div>
             <div className="flex gap-3 pt-2">
               <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2">

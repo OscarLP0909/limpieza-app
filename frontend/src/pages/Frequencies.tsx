@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 interface Frequency {
   id: number;
@@ -35,6 +37,8 @@ function Modal({
 }
 
 export default function Frequencies() {
+  const { addToast } = useToast();
+  const confirm = useConfirm();
   const [frequencies, setFrequencies] = useState<Frequency[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -93,13 +97,13 @@ export default function Frequencies() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Seguro que quieres eliminar esta frecuencia?')) return;
+    if (!await confirm('¿Seguro que quieres eliminar esta frecuencia?')) return;
     setDeletingId(id);
     try {
       await api.delete(`/frequencies/${id}`);
       fetchFrequencies();
     } catch {
-      alert('Error al eliminar');
+      addToast('Error al eliminar la frecuencia', 'error');
     } finally {
       setDeletingId(null);
     }
@@ -175,6 +179,7 @@ export default function Frequencies() {
                 onChange={(e) => setValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                 className="input"
+                maxLength={50}
                 placeholder="Ej: Semanal, Quincenal, Mensual..."
                 autoFocus
               />

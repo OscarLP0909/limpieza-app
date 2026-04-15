@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import type { Work } from '../types';
@@ -42,15 +42,26 @@ export default function Works() {
   const [works, setWorks] = useState<Work[]>([]);
   const [filter, setFilter] = useState<FilterType>('todos');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const isFirstRender = useRef(true);
 
-  const fetchWorks = (p: number) => {
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const fetchWorks = (p: number, s: string, f: FilterType) => {
     setLoading(true);
+    const params: Record<string, string | number> = { page: p, limit: LIMIT };
+    if (s) params.search = s;
+    if (f !== 'todos') params.estado = f;
     api
-      .get<PaginatedWorks>('/works', { params: { page: p, limit: LIMIT } })
+      .get<PaginatedWorks>('/works', { params })
       .then((res) => {
         setWorks(res.data.data);
         setTotalPages(res.data.pagination.totalPages);
@@ -60,19 +71,22 @@ export default function Works() {
       .finally(() => setLoading(false));
   };
 
+  // Reset to page 1 when search or filter changes (skip first render)
   useEffect(() => {
-    fetchWorks(page);
-  }, [page]);
+    if (isFirstRender.current) return;
+    setPage(1);
+    fetchWorks(1, debouncedSearch, filter);
+  }, [debouncedSearch, filter]); // eslint-disable-line
 
-  const filtered = works.filter((w) => {
-    const matchFilter = filter === 'todos' || w.estado === filter;
-    const matchSearch =
-      !search ||
-      (w.nombre ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (w.tipo_servicio ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (w.direccion_trabajo ?? '').toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
+  // Fetch when page changes
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      fetchWorks(1, '', 'todos');
+      return;
+    }
+    fetchWorks(page, debouncedSearch, filter);
+  }, [page]); // eslint-disable-line
 
   if (loading) {
     return (
@@ -118,7 +132,7 @@ export default function Works() {
           </h2>
         </div>
 
-        {filtered.length === 0 ? (
+        {works.length === 0 ? (
           <div className="py-16 text-center text-gray-500 dark:text-gray-400">
             <p className="text-3xl mb-2">📭</p>
             <p className="text-sm">No se encontraron trabajos</p>
@@ -139,7 +153,7 @@ export default function Works() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filtered.map((work) => (
+                {works.map((work) => (
                   <tr key={work.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-4 text-gray-400 dark:text-gray-500 font-mono text-xs hidden sm:table-cell">
                       #{work.id}
@@ -194,13 +208,7 @@ export default function Works() {
           </div>
         )}
 
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          limit={LIMIT}
-          onPage={setPage}
-        />
+        <Pagination page={page} totalPages={totalPages} total={total} limit={LIMIT} onPage={setPage} />
       </div>
     </div>
   );

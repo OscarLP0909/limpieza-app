@@ -149,6 +149,7 @@ export default function NewWork() {
               name="direccion_trabajo"
               type="text"
               className="input"
+              maxLength={200}
               placeholder="Calle Mayor 1, 2ºA, Madrid"
               value={form.direccion_trabajo}
               onChange={handleChange}

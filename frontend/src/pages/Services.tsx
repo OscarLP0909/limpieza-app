@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import type { Service } from '../types';
 import Pagination from '../components/Pagination';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 const LIMIT = 10;
 
@@ -46,6 +48,8 @@ function Modal({
 }
 
 export default function Services() {
+  const { addToast } = useToast();
+  const confirm = useConfirm();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -120,13 +124,13 @@ export default function Services() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Seguro que quieres eliminar este servicio?')) return;
+    if (!await confirm('¿Seguro que quieres eliminar este servicio?')) return;
     setDeletingId(id);
     try {
       await api.delete(`/services/${id}`);
       fetchServices(page);
     } catch {
-      alert('Error al eliminar');
+      addToast('Error al eliminar el servicio', 'error');
     } finally {
       setDeletingId(null);
     }
@@ -215,6 +219,7 @@ export default function Services() {
                 value={form.tipo_servicio}
                 onChange={handleChange}
                 className="input"
+                maxLength={100}
                 placeholder="Ej: Limpieza profunda"
                 required
               />

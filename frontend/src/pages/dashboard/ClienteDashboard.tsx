@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import type { Work } from '../../types';
+import { useToast } from '../../context/ToastContext';
 
 function StatusBadge({ estado }: { estado: Work['estado'] }) {
   const classes: Record<string, string> = {
@@ -87,6 +88,7 @@ function SenaModal({
 }
 
 function WorkCard({ work, onStatusChange }: { work: Work; onStatusChange: () => void }) {
+  const { addToast } = useToast();
   const [updating, setUpdating] = useState(false);
   const [showSenaModal, setShowSenaModal] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
@@ -100,7 +102,7 @@ function WorkCard({ work, onStatusChange }: { work: Work; onStatusChange: () => 
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         'Error al actualizar el estado';
-      alert(msg);
+      addToast(msg, 'error');
     } finally {
       setUpdating(false);
     }
@@ -115,7 +117,7 @@ function WorkCard({ work, onStatusChange }: { work: Work; onStatusChange: () => 
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         'Error al enviar la solicitud';
-      alert(msg);
+      addToast(msg, 'error');
     } finally {
       setUpdating(false);
     }
