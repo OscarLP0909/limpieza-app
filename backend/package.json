@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "start": "ts-node src/index.ts",
-    "dev": "nodemon src/index.ts",
+    "dev": "nodemon src/server.ts",
     "build": "tsc"
   },
   "ts-node": {
@@ -16,6 +17,13 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": ["**/*.test.ts"],
+    "setupFilesAfterEnv": ["./src/tests/setup.ts"]
+  },
+
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
@@ -33,12 +41,17 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
     "@types/nodemailer": "^8.0.0",
+    "@types/supertest": "^7.2.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "jest": "^30.3.0",
     "nodemon": "^3.1.14",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2"
   }
