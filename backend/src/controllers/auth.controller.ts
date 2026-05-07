@@ -90,7 +90,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             return res.status(400).json({ message: 'No userId inserted'});
         }
         const [clientNew] = await db.query('INSERT INTO Clients (nombre, apellidos, direccion, telefono, user_id) VALUES (?, ?, ?, ?, ?)', [nombre, apellidos, direccion, telefono, userId]);
-        return res.status(200).json({ message: 'Client registered'});
+        return res.status(201).json({ message: 'Client registered'});
 
     } catch (error) {
         next(error);
