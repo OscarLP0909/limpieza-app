@@ -122,5 +122,12 @@ describe('POST /auth/me', () => {
                 .set('Cookie', cookie);
 
             expect(res.status).toBe(200);
+    });
+
+    it('should return 401 without token', async() => {
+            const res = await request(app)
+                .get('/auth/me')
+
+            expect(res.status).toBe(401);
     })
 })
