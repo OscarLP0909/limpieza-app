@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { getFrequencies, createFrequencies, updateFrequencies, deleteFrequency } from "../controllers/frequency.controller";
+import { authenticateToken, authorizeRoles } from "../middlewares/auth.middleware";
+
+const router = Router();
+
+router.get('/', authenticateToken, getFrequencies);
+router.post('/', authenticateToken, authorizeRoles('admin'), createFrequencies);
+router.patch('/:id', authenticateToken, authorizeRoles('admin'), updateFrequencies);
+router.delete('/:id', authenticateToken, authorizeRoles('admin'), deleteFrequency);
+
+export default router;
