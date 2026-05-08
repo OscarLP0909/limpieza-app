@@ -13,7 +13,7 @@ interface UserRow extends RowDataPacket {
 export const getStaffUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const [rows] = await db.query<UserRow[]>(
-            "SELECT u.id, u.email, r.rol as role FROM Users u JOIN Roles r ON u.role_id = r.id WHERE u.type = 'staff' OR u.role_id IN (1, 2) ORDER BY u.role_id, u.email"
+            "SELECT u.id, u.email, r.rol as role FROM Users u JOIN roles r ON u.role_id = r.id WHERE u.type = 'staff' OR u.role_id IN (1, 2) ORDER BY u.role_id, u.email"
         );
         return res.status(200).json(rows);
     } catch (error) {
@@ -39,7 +39,7 @@ export const createStaffUser = async (req: Request, res: Response, next: NextFun
             return res.status(400).json({ message: 'Email already exists' });
         }
 
-        const [roleRow] = await db.query<UserRow[]>('SELECT id FROM Roles WHERE rol = ?', [role]);
+        const [roleRow] = await db.query<UserRow[]>('SELECT id FROM roles WHERE rol = ?', [role]);
         if (roleRow.length === 0) {
             return res.status(400).json({ message: 'Role not found' });
         }

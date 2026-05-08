@@ -100,7 +100,10 @@ export default function WorkDetail() {
     if (!selectedEmployee) return;
     setAssigningEmployee(true);
     try {
-      await api.post(`/works/${id}/assign`, { employee_id: Number(selectedEmployee) });
+      await api.patch(`/works/${id}`, { 
+        id_employees: [Number(selectedEmployee)],
+        duracion: 60
+      });
       addToast('Empleado asignado correctamente', 'success');
       setSelectedEmployee('');
       fetchWork();
