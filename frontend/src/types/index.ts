@@ -6,6 +6,8 @@ export interface Work {
   fecha_hora: string | null;
   estado: 'creado' | 'pendiente' | 'presupuestado' | 'aceptado' | 'rechazado' | 'cancelado' | 'cancelacion_solicitada';
   precio: number | null;
+  duracion: number | null;
+  precio_servicio?: number | null;
   nombre: string | null;
   tipo_servicio: string | null;
   frecuencia: string | null;

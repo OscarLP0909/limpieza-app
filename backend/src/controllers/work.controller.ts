@@ -42,11 +42,15 @@ export const getWorks = async (req: Request, res: Response, next: NextFunction) 
 export const getWorkById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
-        const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id WHERE t.id = ?', [id]);
+        const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, s.precio as precio_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id WHERE t.id = ?', [id]);
         if (works.length === 0) {
             return res.status(404).json({ message: 'Work not found' });
         }
-        return res.status(200).json(works[0]);
+        const [empleados] = await db.query<RowDataPacket[]>(
+            'SELECT e.id, e.nombre, e.apellidos FROM Employees e JOIN Trabajo_Empleado te ON te.id_empleado = e.id WHERE te.id_trabajo = ?',
+            [id]
+        );
+        return res.status(200).json({ ...works[0], empleados });
     } catch (error) {
         next(error);
     }
@@ -93,7 +97,7 @@ export const getWorksByClientId = async (req: Request, res: Response, next: Next
 export const updateWork = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
-        const { id_employees, duracion } = (req as any).body;
+        const { id_employees, duracion, precio: precioManual } = (req as any).body;
         if (!id) {
             return res.status(403).json({ message: 'Forbidden' });
         }
@@ -137,9 +141,11 @@ export const updateWork = async (req: Request, res: Response, next: NextFunction
             return res.status(400).json({ message: 'All employees are already assigned' });
         }
 
-        const precio = precio_rows[0]?.precio;
+        const precioBase = precio_rows[0]?.precio;
         const totalEmployees = existingIds.length + newEmployees.length;
-        const precio_final = precio * totalEmployees;
+        const precio_final = (precioManual != null && !isNaN(Number(precioManual)) && Number(precioManual) > 0)
+            ? Number(precioManual)
+            : precioBase * totalEmployees;
 
         const [emailUser] = await db.query<WorkRow[]>('SELECT u.email FROM Users u JOIN Clients c on c.user_id = u.id WHERE c.id = ?', [rows[0]?.id_cliente]);
 

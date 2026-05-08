@@ -43,10 +43,9 @@ export default function WorkDetail() {
 
   const canManage = user?.role === 'admin' || user?.role === 'gestor';
 
-  const [precio, setPrecio] = useState('');
-  const [expiracion, setExpiracion] = useState('');
-  const [savingPresupuesto, setSavingPresupuesto] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [selectedEmployees, setSelectedEmployees] = useState<number[]>([]);
+  const [duracionInput, setDuracionInput] = useState('');
+  const [precioInput, setPrecioInput] = useState('');
   const [assigningEmployee, setAssigningEmployee] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
@@ -74,41 +73,43 @@ export default function WorkDetail() {
       .finally(() => setLoading(false));
   }, [id, canManage]); // eslint-disable-line
 
-  const handlePresupuestar = async () => {
-    if (!precio || isNaN(Number(precio)) || Number(precio) <= 0) {
-      setError('Introduce un precio válido');
-      return;
-    }
-    setSavingPresupuesto(true);
-    setError('');
-    try {
-      await api.patch(`/works/${id}/budget`, {
-        precio: Number(precio),
-        expiracion_dias: expiracion ? Number(expiracion) : 15,
-      });
-      addToast('Presupuesto enviado correctamente', 'success');
-      fetchWork();
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al presupuestar';
-      setError(msg);
-    } finally {
-      setSavingPresupuesto(false);
-    }
+  const toggleEmployee = (empId: number) => {
+    setSelectedEmployees((prev) => {
+      const next = prev.includes(empId) ? prev.filter((e) => e !== empId) : [...prev, empId];
+      if (work?.precio_servicio) {
+        const total = (work.empleados?.length ?? 0) + next.length;
+        setPrecioInput(total > 0 ? (work.precio_servicio * total).toFixed(2) : '');
+      }
+      return next;
+    });
   };
 
-  const handleAssignEmployee = async () => {
-    if (!selectedEmployee) return;
+  const handleAssignEmployees = async () => {
+    if (selectedEmployees.length === 0) {
+      setError('Selecciona al menos un empleado');
+      return;
+    }
+    if (!duracionInput || isNaN(Number(duracionInput)) || Number(duracionInput) <= 0) {
+      setError('Introduce una duración estimada válida');
+      return;
+    }
     setAssigningEmployee(true);
+    setError('');
     try {
-      await api.patch(`/works/${id}`, { 
-        id_employees: [Number(selectedEmployee)],
-        duracion: 60
+      await api.patch(`/works/${id}`, {
+        id_employees: selectedEmployees,
+        duracion: Number(duracionInput),
+        ...(precioInput ? { precio: Number(precioInput) } : {}),
       });
-      addToast('Empleado asignado correctamente', 'success');
-      setSelectedEmployee('');
+      addToast('Empleados asignados y presupuesto enviado', 'success');
+      setSelectedEmployees([]);
+      setDuracionInput('');
+      setPrecioInput('');
       fetchWork();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al asignar';
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Error al asignar';
       setError(msg);
     } finally {
       setAssigningEmployee(false);
@@ -123,7 +124,9 @@ export default function WorkDetail() {
       addToast('Trabajo cancelado', 'info');
       fetchWork();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al cancelar';
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Error al cancelar';
       setError(msg);
     } finally {
       setCancelling(false);
@@ -138,7 +141,8 @@ export default function WorkDetail() {
       addToast('Cancelación confirmada', 'info');
       fetchWork();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error';
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error';
       setError(msg);
     } finally {
       setCancelling(false);
@@ -165,6 +169,13 @@ export default function WorkDetail() {
   if (!work) return null;
 
   const isFinished = ['cancelado', 'rechazado'].includes(work.estado);
+  const assignedIds = new Set((work.empleados ?? []).map((e) => e.id));
+  const availableEmployees = employees.filter((e) => !assignedIds.has(e.id));
+  const canAssign =
+    canManage &&
+    !isFinished &&
+    (work.estado === 'creado' || work.estado === 'pendiente') &&
+    availableEmployees.length > 0;
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -206,21 +217,37 @@ export default function WorkDetail() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Fecha</p>
             <p className="font-medium text-gray-900 dark:text-white">
               {work.fecha_hora
-                ? new Date(work.fecha_hora).toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+                ? new Date(work.fecha_hora).toLocaleDateString('es-ES', {
+                    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+                  })
                 : '—'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Precio</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">
+              {work.precio != null ? 'Precio total' : 'Precio del servicio'}
+            </p>
             <p className="font-medium text-gray-900 dark:text-white">
-              {work.precio != null ? `${Number(work.precio).toFixed(2)} €` : '—'}
+              {work.precio != null
+                ? `${Number(work.precio).toFixed(2)} €`
+                : work.precio_servicio != null
+                  ? `${Number(work.precio_servicio).toFixed(2)} €`
+                  : '—'}
             </p>
           </div>
+          {work.duracion != null && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Duración estimada</p>
+              <p className="font-medium text-gray-900 dark:text-white">{work.duracion} h</p>
+            </div>
+          )}
           {work.presupuesto_expira_en && (
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Presupuesto expira</p>
               <p className="font-medium text-orange-600 dark:text-orange-400">
-                {new Date(work.presupuesto_expira_en).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                {new Date(work.presupuesto_expira_en).toLocaleDateString('es-ES', {
+                  day: '2-digit', month: 'short', year: 'numeric',
+                })}
               </p>
             </div>
           )}
@@ -254,72 +281,90 @@ export default function WorkDetail() {
       {/* Admin/Gestor actions */}
       {canManage && !isFinished && (
         <div className="space-y-4">
-          {/* Presupuestar */}
-          {(work.estado === 'pendiente' || work.estado === 'creado') && (
+          {/* Assign employees + send budget */}
+          {canAssign && (
             <div className="card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Enviar presupuesto</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                Asignar empleados y enviar presupuesto
+              </h3>
+
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  Selecciona uno o varios empleados
+                </p>
+                <div className="space-y-2 max-h-52 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                  {availableEmployees.map((emp) => (
+                    <label
+                      key={emp.id}
+                      className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded px-1 py-0.5"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedEmployees.includes(emp.id)}
+                        onChange={() => toggleEmployee(emp.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-800 dark:text-gray-200">
+                        {emp.nombre} {emp.apellidos}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {selectedEmployees.length > 0 && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    {selectedEmployees.length} empleado{selectedEmployees.length !== 1 ? 's' : ''} seleccionado{selectedEmployees.length !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Precio (€)</label>
+                  <label className="label">Duración estimada del trabajo (horas)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.5"
+                    className="input"
+                    placeholder="2"
+                    value={duracionInput}
+                    onChange={(e) => setDuracionInput(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="label">
+                    Precio total (€)
+                    {work.precio_servicio != null && (
+                      <span className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500">
+                        base: {Number(work.precio_servicio).toFixed(2)} €/empleado
+                      </span>
+                    )}
+                  </label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
                     className="input"
-                    placeholder="150.00"
-                    value={precio}
-                    onChange={(e) => setPrecio(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="label">Días para expirar (def. 15)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="90"
-                    className="input"
-                    placeholder="15"
-                    value={expiracion}
-                    onChange={(e) => setExpiracion(e.target.value)}
+                    placeholder={
+                      work.precio_servicio != null
+                        ? (work.precio_servicio * ((work.empleados?.length ?? 0) + selectedEmployees.length || 1)).toFixed(2)
+                        : '0.00'
+                    }
+                    value={precioInput}
+                    onChange={(e) => setPrecioInput(e.target.value)}
                   />
                 </div>
               </div>
+
               <button
-                onClick={handlePresupuestar}
-                disabled={savingPresupuesto}
+                onClick={handleAssignEmployees}
+                disabled={selectedEmployees.length === 0 || assigningEmployee}
                 className="btn-primary flex items-center gap-2"
               >
-                {savingPresupuesto && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                Enviar presupuesto
+                {assigningEmployee && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                Asignar y enviar presupuesto
               </button>
-            </div>
-          )}
-
-          {/* Assign employee */}
-          {employees.length > 0 && (
-            <div className="card p-6 space-y-3">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Asignar empleado</h3>
-              <div className="flex gap-3">
-                <select
-                  className="input"
-                  value={selectedEmployee}
-                  onChange={(e) => setSelectedEmployee(e.target.value)}
-                >
-                  <option value="">Selecciona un empleado...</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.nombre} {emp.apellidos}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAssignEmployee}
-                  disabled={!selectedEmployee || assigningEmployee}
-                  className="btn-primary whitespace-nowrap"
-                >
-                  {assigningEmployee ? '...' : 'Asignar'}
-                </button>
-              </div>
             </div>
           )}
 
