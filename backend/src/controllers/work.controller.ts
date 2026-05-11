@@ -23,8 +23,31 @@ export const getWorks = async (req: Request, res: Response, next: NextFunction) 
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 10;
         const offset = (page - 1) * limit;
-        const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id LIMIT ? OFFSET ?', [limit, offset]);
-        const [total] = await db.query<RowDataPacket[]>('SELECT COUNT(*) as total FROM Trabajos');
+        const estado = req.query.estado as string | undefined;
+        const search = req.query.search as string | undefined;
+
+        const conditions: string[] = [];
+        const params: (string | number)[] = [];
+
+        if (estado) {
+            conditions.push('t.estado = ?');
+            params.push(estado);
+        }
+        if (search) {
+            conditions.push('(c.nombre LIKE ? OR s.tipo_servicio LIKE ? OR t.direccion_trabajo LIKE ?)');
+            const like = `%${search}%`;
+            params.push(like, like, like);
+        }
+
+        const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+        const base = `FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id ${where}`;
+
+        const [works] = await db.query<WorkRow[]>(
+            `SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en ${base} LIMIT ? OFFSET ?`,
+            [...params, limit, offset]
+        );
+        const [total] = await db.query<RowDataPacket[]>(`SELECT COUNT(*) as total ${base}`, params);
+
         return res.status(200).json({
             data: works,
             pagination: {
@@ -46,9 +69,10 @@ export const getWorkById = async (req: Request, res: Response, next: NextFunctio
             `SELECT t.id, t.id_tipo_servicio, t.id_frecuencia, c.nombre,
              s.tipo_servicio, s.precio as precio_servicio, f.frecuencia,
              t.direccion_trabajo, t.estado, t.precio, t.duracion,
-             t.fecha_hora, t.presupuesto_expira_en
+             t.fecha_hora, t.presupuesto_expira_en, u.email as client_email
              FROM Trabajos t
              JOIN clients c ON t.id_cliente = c.id
+             JOIN Users u ON u.id = c.user_id
              JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id
              JOIN Frecuencia f ON t.id_frecuencia = f.id
              WHERE t.id = ?`,

@@ -28,6 +28,7 @@ interface WorkDetailData extends Work {
   client_nombre?: string;
   client_apellidos?: string;
   client_telefono?: string;
+  client_email?: string;
 }
 
 export default function WorkDetail() {
@@ -198,6 +199,12 @@ export default function WorkDetail() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Cliente</p>
             <p className="font-medium text-gray-900 dark:text-white">{work.nombre ?? '—'}</p>
           </div>
+          {work.client_email && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Correo del cliente</p>
+              <p className="font-medium text-gray-900 dark:text-white">{work.client_email}</p>
+            </div>
+          )}
           <div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Dirección</p>
             <p className="font-medium text-gray-900 dark:text-white">{work.direccion_trabajo}</p>
