@@ -42,11 +42,29 @@ export const getWorks = async (req: Request, res: Response, next: NextFunction) 
 export const getWorkById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
-        const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id WHERE t.id = ?', [id]);
+        const [works] = await db.query<WorkRow[]>(
+            `SELECT t.id, t.id_tipo_servicio, t.id_frecuencia, c.nombre,
+             s.tipo_servicio, s.precio as precio_servicio, f.frecuencia,
+             t.direccion_trabajo, t.estado, t.precio, t.duracion,
+             t.fecha_hora, t.presupuesto_expira_en
+             FROM Trabajos t
+             JOIN clients c ON t.id_cliente = c.id
+             JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id
+             JOIN Frecuencia f ON t.id_frecuencia = f.id
+             WHERE t.id = ?`,
+            [id]
+        );
         if (works.length === 0) {
             return res.status(404).json({ message: 'Work not found' });
         }
-        return res.status(200).json(works[0]);
+        const [empleados] = await db.query<RowDataPacket[]>(
+            `SELECT e.id, e.nombre, e.apellidos
+             FROM Trabajo_Empleado te
+             JOIN Employees e ON te.id_empleado = e.id
+             WHERE te.id_trabajo = ?`,
+            [id]
+        );
+        return res.status(200).json({ ...works[0], empleados });
     } catch (error) {
         next(error);
     }
@@ -76,7 +94,7 @@ export const getWorksByClientId = async (req: Request, res: Response, next: Next
             return res.status(403).json({ message: 'Forbidden' });
         }
         const [works] = await db.query<WorkRow[]>('SELECT t.id, c.nombre, s.tipo_servicio, f.frecuencia, t.direccion_trabajo, t.estado, t.precio, t.duracion, t.fecha_hora, t.presupuesto_expira_en FROM Trabajos t JOIN clients c ON t.id_cliente = c.id JOIN Tipo_Servicio s ON t.id_tipo_servicio = s.id JOIN Frecuencia f ON t.id_frecuencia = f.id WHERE t.id_cliente = ?', [id_cliente]);
-        return res.status(200).json(works);
+        return res.status(200).json({ data: works });
     } catch (error) {
         next(error);
     }
@@ -143,7 +161,7 @@ export const updateWork = async (req: Request, res: Response, next: NextFunction
                 ))
         );
 
-        const updated = await db.query('UPDATE Trabajos SET precio = ?, duracion = ?, estado = ?, presupuesto_expira_en = ? WHERE id = ?', [precio_final, duracion, 'presupuestado', expira, id]);
+        const updated = await db.query('UPDATE Trabajos SET precio = ?, duracion = ?, estado = ?, presupuesto_expira_en = ? WHERE id = ?', [precio_final, Math.round(duracion * 60), 'presupuestado', expira, id]);
 
         await sendEmail({
             to: emailUser[0].email,
@@ -238,10 +256,7 @@ export const getAssignedWorks = async (req: Request, res: Response, next: NextFu
     try {
         const user_id = (req as any).user!.id;
         const [rows] = await db.query<WorkRow[]>('SELECT t.id, c.nombre as Nombre_Cliente, t.direccion_trabajo as Direccion, s.tipo_servicio, t.fecha_hora as Fecha FROM Trabajos t JOIN Trabajo_Empleado te ON te.id_trabajo = t.id JOIN Clients c ON c.id = t.id_cliente JOIN Tipo_Servicio s ON s.id = t.id_tipo_servicio JOIN Employees e ON e.id = te.id_empleado WHERE e.user_id = ?', [user_id]);
-        if (rows.length === 0) {
-            return res.status(200).json(rows);
-        }
-        return res.status(200).json(rows);
+        return res.status(200).json({ data: rows });
     } catch (error) {
         next(error);
     }

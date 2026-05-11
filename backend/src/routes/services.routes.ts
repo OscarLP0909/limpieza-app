@@ -19,7 +19,7 @@ const router = Router();
  *       403:
  *         description: Sin permisos
  */
-router.get('/', authenticateToken, authorizeRoles('admin'), getServices);
+router.get('/', authenticateToken, authorizeRoles('admin', 'gestor', 'cliente'), getServices);
 
 /**
  * @swagger

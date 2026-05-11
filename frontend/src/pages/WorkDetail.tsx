@@ -24,6 +24,7 @@ function StatusBadge({ estado }: { estado: Work['estado'] }) {
 
 interface WorkDetailData extends Work {
   empleados?: { id: number; nombre: string; apellidos: string }[];
+  precio_servicio?: number | null;
   client_nombre?: string;
   client_apellidos?: string;
   client_telefono?: string;
@@ -43,11 +44,9 @@ export default function WorkDetail() {
 
   const canManage = user?.role === 'admin' || user?.role === 'gestor';
 
-  const [precio, setPrecio] = useState('');
-  const [expiracion, setExpiracion] = useState('');
-  const [savingPresupuesto, setSavingPresupuesto] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [assigningEmployee, setAssigningEmployee] = useState(false);
+  const [selectedEmployees, setSelectedEmployees] = useState<number[]>([]);
+  const [duracionHoras, setDuracionHoras] = useState('');
+  const [savingAssignment, setSavingAssignment] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
   const fetchWork = () => {
@@ -74,41 +73,37 @@ export default function WorkDetail() {
       .finally(() => setLoading(false));
   }, [id, canManage]); // eslint-disable-line
 
-  const handlePresupuestar = async () => {
-    if (!precio || isNaN(Number(precio)) || Number(precio) <= 0) {
-      setError('Introduce un precio válido');
-      return;
-    }
-    setSavingPresupuesto(true);
-    setError('');
-    try {
-      await api.patch(`/works/${id}/budget`, {
-        precio: Number(precio),
-        expiracion_dias: expiracion ? Number(expiracion) : 15,
-      });
-      addToast('Presupuesto enviado correctamente', 'success');
-      fetchWork();
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al presupuestar';
-      setError(msg);
-    } finally {
-      setSavingPresupuesto(false);
-    }
+  const toggleEmployee = (empId: number) => {
+    setSelectedEmployees((prev) =>
+      prev.includes(empId) ? prev.filter((e) => e !== empId) : [...prev, empId]
+    );
   };
 
-  const handleAssignEmployee = async () => {
-    if (!selectedEmployee) return;
-    setAssigningEmployee(true);
+  const handleSubmitAssignment = async () => {
+    if (selectedEmployees.length === 0) {
+      setError('Selecciona al menos un empleado');
+      return;
+    }
+    if (!duracionHoras || isNaN(Number(duracionHoras)) || Number(duracionHoras) <= 0) {
+      setError('Introduce una duración válida en horas');
+      return;
+    }
+    setSavingAssignment(true);
+    setError('');
     try {
-      await api.post(`/works/${id}/assign`, { employee_id: Number(selectedEmployee) });
-      addToast('Empleado asignado correctamente', 'success');
-      setSelectedEmployee('');
+      await api.patch(`/works/${id}`, {
+        id_employees: selectedEmployees,
+        duracion: Number(duracionHoras),
+      });
+      addToast('Empleados asignados y presupuesto enviado', 'success');
+      setSelectedEmployees([]);
+      setDuracionHoras('');
       fetchWork();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al asignar';
       setError(msg);
     } finally {
-      setAssigningEmployee(false);
+      setSavingAssignment(false);
     }
   };
 
@@ -162,6 +157,14 @@ export default function WorkDetail() {
   if (!work) return null;
 
   const isFinished = ['cancelado', 'rechazado'].includes(work.estado);
+  const canAssign = work.estado === 'pendiente' || work.estado === 'creado';
+  const assignedIds = new Set((work.empleados ?? []).map((e) => e.id));
+  const availableEmployees = employees.filter((e) => !assignedIds.has(e.id) && e.status === 'activo');
+
+  const previewPrice =
+    work.precio_servicio != null
+      ? work.precio_servicio * ((work.empleados?.length ?? 0) + selectedEmployees.length)
+      : null;
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -208,17 +211,50 @@ export default function WorkDetail() {
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Precio</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Precio del servicio</p>
             <p className="font-medium text-gray-900 dark:text-white">
-              {work.precio != null ? `${Number(work.precio).toFixed(2)} €` : '—'}
+              {work.precio_servicio != null ? `${Number(work.precio_servicio).toFixed(2)} € / empleado` : '—'}
             </p>
           </div>
+          {work.precio != null && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Presupuesto total</p>
+              <p className="font-medium text-blue-600 dark:text-blue-400">
+                {Number(work.precio).toFixed(2)} €
+              </p>
+            </div>
+          )}
+          {work.duracion != null && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Duración</p>
+              <p className="font-medium text-gray-900 dark:text-white">
+                {(work.duracion / 60 % 1 === 0)
+                  ? `${work.duracion / 60} h`
+                  : `${(work.duracion / 60).toFixed(1)} h`}
+              </p>
+            </div>
+          )}
           {work.presupuesto_expira_en && (
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Presupuesto expira</p>
               <p className="font-medium text-orange-600 dark:text-orange-400">
                 {new Date(work.presupuesto_expira_en).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
               </p>
+            </div>
+          )}
+          {work.empleados && work.empleados.length > 0 && (
+            <div className="sm:col-span-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Empleados asignados</p>
+              <div className="flex flex-wrap gap-2">
+                {work.empleados.map((emp) => (
+                  <span
+                    key={emp.id}
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    👷 {emp.nombre} {emp.apellidos}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -233,90 +269,67 @@ export default function WorkDetail() {
         )}
       </div>
 
-      {/* Employed assigned */}
-      {work.empleados && work.empleados.length > 0 && (
-        <div className="card p-6">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Empleados asignados</h3>
-          <ul className="space-y-2">
-            {work.empleados.map((emp) => (
-              <li key={emp.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <span className="text-base">👷</span>
-                {emp.nombre} {emp.apellidos}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {/* Admin/Gestor actions */}
       {canManage && !isFinished && (
         <div className="space-y-4">
-          {/* Presupuestar */}
-          {(work.estado === 'pendiente' || work.estado === 'creado') && (
+          {/* Assign employees + budget */}
+          {canAssign && availableEmployees.length > 0 && (
             <div className="card p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Enviar presupuesto</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Precio (€)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="input"
-                    placeholder="150.00"
-                    value={precio}
-                    onChange={(e) => setPrecio(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="label">Días para expirar (def. 15)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="90"
-                    className="input"
-                    placeholder="15"
-                    value={expiracion}
-                    onChange={(e) => setExpiracion(e.target.value)}
-                  />
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Asignar empleados y presupuestar</h3>
+
+              <div>
+                <label className="label">Duración (horas)</label>
+                <input
+                  type="number"
+                  min="0.5"
+                  step="0.5"
+                  className="input w-40"
+                  placeholder="2"
+                  value={duracionHoras}
+                  onChange={(e) => setDuracionHoras(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <p className="label mb-2">Empleados</p>
+                <div className="space-y-2">
+                  {availableEmployees.map((emp) => (
+                    <label
+                      key={emp.id}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        checked={selectedEmployees.includes(emp.id)}
+                        onChange={() => toggleEmployee(emp.id)}
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                        {emp.nombre} {emp.apellidos}
+                      </span>
+                    </label>
+                  ))}
                 </div>
               </div>
+
+              {previewPrice != null && selectedEmployees.length > 0 && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Presupuesto estimado:{' '}
+                    <span className="font-semibold">{previewPrice.toFixed(2)} €</span>
+                    {' '}({(work.empleados?.length ?? 0) + selectedEmployees.length} empleado{(work.empleados?.length ?? 0) + selectedEmployees.length !== 1 ? 's' : ''})
+                  </p>
+                </div>
+              )}
+
               <button
-                onClick={handlePresupuestar}
-                disabled={savingPresupuesto}
+                onClick={handleSubmitAssignment}
+                disabled={savingAssignment || selectedEmployees.length === 0}
                 className="btn-primary flex items-center gap-2"
               >
-                {savingPresupuesto && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                {savingAssignment && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 Enviar presupuesto
               </button>
-            </div>
-          )}
-
-          {/* Assign employee */}
-          {employees.length > 0 && (
-            <div className="card p-6 space-y-3">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Asignar empleado</h3>
-              <div className="flex gap-3">
-                <select
-                  className="input"
-                  value={selectedEmployee}
-                  onChange={(e) => setSelectedEmployee(e.target.value)}
-                >
-                  <option value="">Selecciona un empleado...</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.nombre} {emp.apellidos}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAssignEmployee}
-                  disabled={!selectedEmployee || assigningEmployee}
-                  className="btn-primary whitespace-nowrap"
-                >
-                  {assigningEmployee ? '...' : 'Asignar'}
-                </button>
-              </div>
             </div>
           )}
 
