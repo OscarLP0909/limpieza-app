@@ -8,7 +8,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/clients': 'Clientes',
   '/employees': 'Empleados',
   '/services': 'Servicios',
-  '/frequencies': 'Frecuencias',
+  '/frequencies': 'frecuencias',
   '/users': 'Usuarios',
   '/new-work': 'Solicitar trabajo',
 };

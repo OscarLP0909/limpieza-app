@@ -20,7 +20,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             return res.status(400).json({ message: 'Email and password are required' });
         }
 
-        const [user_email] = await db.query('SELECT u.id, u.email, u.password, u.role_id, r.rol as role, u.type FROM users u JOIN Roles r ON u.role_id = r.id WHERE u.email = ?', [email]) as [UserRow[], any];
+        const [user_email] = await db.query('SELECT u.id, u.email, u.password, u.role_id, r.rol as role, u.type FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = ?', [email]) as [UserRow[], any];
 
         if (!user_email || user_email.length === 0) {
             return res.status(401).json({ message: 'Invalid credentials' });
@@ -64,7 +64,7 @@ export const me = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = (req as any).user!.id;
         const [rows] = await db.query(
-            'SELECT u.id, u.email, r.rol as role FROM users u JOIN Roles r ON u.role_id = r.id WHERE u.id = ?',
+            'SELECT u.id, u.email, r.rol as role FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = ?',
             [userId]
         ) as [UserRow[], unknown];
         if (!rows || rows.length === 0) {
@@ -82,13 +82,13 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         if (!nombre || !apellidos || !direccion || !telefono || !email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
         }
-        const [rowEmail] = await db.query('SELECT id FROM Users WHERE email = ?', [email]) as [UserRow[], any];
+        const [rowEmail] = await db.query('SELECT id FROM users WHERE email = ?', [email]) as [UserRow[], any];
         if (rowEmail.length > 0) {
             return res.status(400).json({ message: 'Email already exists' });
         }
         const hashPwd = await bcrypt.hash(password, 10);
 
-        const [newUser] = await db.query('INSERT INTO Users (email, password, role_id, type) VALUES (?, ?, ?, ?)', [email, hashPwd, 4, 'client']);
+        const [newUser] = await db.query('INSERT INTO users (email, password, role_id, type) VALUES (?, ?, ?, ?)', [email, hashPwd, 4, 'client']);
         const userId = (newUser as any).insertId;
         if(!userId) {
             return res.status(400).json({ message: 'No userId inserted'});

@@ -53,7 +53,7 @@ export default function Frequencies() {
       else await api.post('/frequencies', { frecuencia: value.trim() });
       setShowModal(false);
       fetchFrequencies();
-      addToast(editingId !== null ? 'Frecuencia actualizada' : 'Frecuencia creada', 'success');
+      addToast(editingId !== null ? 'frecuencia actualizada' : 'frecuencia creada', 'success');
     } catch (err: unknown) {
       setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al guardar');
     } finally { setSaving(false); }

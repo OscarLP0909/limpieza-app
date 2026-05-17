@@ -31,7 +31,7 @@ export function generateWorkPDF(work: Work) {
 
   line(`Cliente: ${work.nombre ?? '—'}`, 4);
   line(`Servicio: ${work.tipo_servicio ?? '—'}`, 4);
-  line(`Frecuencia: ${work.frecuencia ?? '—'}`, 4);
+  line(`frecuencia: ${work.frecuencia ?? '—'}`, 4);
   line(`Dirección: ${work.direccion_trabajo}`, 4);
 
   if (work.fecha_hora) {

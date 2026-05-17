@@ -20,14 +20,14 @@ export const createFrequencies = async (req: Request, res: Response, next: NextF
     try {
         const { frecuencia } = req.body;
         if (!frecuencia || typeof frecuencia !== "string") {
-            return res.status(400).json({ message: 'Frecuencia es obligatorio y tiene que ser string' });
+            return res.status(400).json({ message: 'frecuencia es obligatorio y tiene que ser string' });
         }
         const [existing] = await db.query<FrequencyRow[]>('SELECT id FROM frecuencia WHERE frecuencia = ?', [frecuencia]);
         if (existing.length > 0) {
             return res.status(400).json({ message: 'Esa frecuencia ya existe' });
         }
         await db.query('INSERT INTO frecuencia (frecuencia) VALUES (?)', [frecuencia]);
-        return res.status(201).json({ message: 'Frecuencia creada correctamente' });
+        return res.status(201).json({ message: 'frecuencia creada correctamente' });
     } catch (error) {
         next(error);
     }
@@ -38,14 +38,14 @@ export const updateFrequencies = async (req: Request, res: Response, next: NextF
         const { id } = req.params;
         const { frecuencia } = req.body;
         if (!frecuencia) {
-            return res.status(400).json({ message: 'Frecuencia es obligatorio' });
+            return res.status(400).json({ message: 'frecuencia es obligatorio' });
         }
         const [row] = await db.query<FrequencyRow[]>('SELECT id FROM frecuencia WHERE id = ?', [id]);
         if (row.length === 0) {
-            return res.status(404).json({ message: 'Frecuencia no encontrada' });
+            return res.status(404).json({ message: 'frecuencia no encontrada' });
         }
         await db.query('UPDATE frecuencia SET frecuencia = ? WHERE id = ?', [frecuencia, id]);
-        return res.status(200).json({ message: 'Frecuencia actualizada' });
+        return res.status(200).json({ message: 'frecuencia actualizada' });
     } catch (error) {
         next(error);
     }

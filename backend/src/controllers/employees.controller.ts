@@ -20,8 +20,8 @@ export const getEmployees = async (req: Request, res: Response, next: NextFuncti
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 10;
         const offset = (page - 1) * limit;
-        const [rows] = await db.query<EmployeeRow[]>('SELECT e.id, e.nombre, e.apellidos, u.email, e.telefono, e.iban, e.nif, e.direccion, e.status FROM Employees e JOIN Users u ON e.user_id = u.id LIMIT ? OFFSET ?', [limit, offset]);
-        const [total] = await db.query<RowDataPacket[]>('SELECT COUNT(*) as total FROM Employees e JOIN Users u ON e.user_id = u.id');
+        const [rows] = await db.query<EmployeeRow[]>('SELECT e.id, e.nombre, e.apellidos, u.email, e.telefono, e.iban, e.nif, e.direccion, e.status FROM employees e JOIN users u ON e.user_id = u.id LIMIT ? OFFSET ?', [limit, offset]);
+        const [total] = await db.query<RowDataPacket[]>('SELECT COUNT(*) as total FROM employees e JOIN users u ON e.user_id = u.id');
         return res.status(200).json({
             data: rows,
             pagination: {
@@ -42,15 +42,15 @@ export const createEmployee = async (req: Request, res: Response, next: NextFunc
         if (!nombre || !apellidos || !telefono || !iban || !nif || !direccion || !email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
         }
-        const [existNif] = await db.query<EmployeeRow[]>('SELECT nombre, apellidos, nif FROM Employees WHERE nif = ?', [nif]);
+        const [existNif] = await db.query<EmployeeRow[]>('SELECT nombre, apellidos, nif FROM employees WHERE nif = ?', [nif]);
         if(existNif.length > 0) {
             return res.status(400).json({ message: 'There is already a employee with that nif' });
         }
-        const [existIban] = await db.query<EmployeeRow[]>('SELECT nombre, apellidos, nif FROM Employees WHERE iban = ?', [iban]);
+        const [existIban] = await db.query<EmployeeRow[]>('SELECT nombre, apellidos, nif FROM employees WHERE iban = ?', [iban]);
         if(existIban.length > 0) {
             return res.status(400).json({ message: 'There is already a employee with that IBAN' });
         }
-        const [existEmail] = await db.query<EmployeeRow[]>('SELECT email FROM Users WHERE email = ?', [email]);
+        const [existEmail] = await db.query<EmployeeRow[]>('SELECT email FROM users WHERE email = ?', [email]);
         if(existEmail.length > 0) {
             return res.status(400).json({ message: 'There is already a user with that email' });
         }
@@ -58,7 +58,7 @@ export const createEmployee = async (req: Request, res: Response, next: NextFunc
 
         
 
-        const [newUser] = await db.query('INSERT INTO Users (email, password, role_id, type) VALUES (?, ?, ?, ?)', [email, hashedPwd, 3, 'employee']);
+        const [newUser] = await db.query('INSERT INTO users (email, password, role_id, type) VALUES (?, ?, ?, ?)', [email, hashedPwd, 3, 'employee']);
         const user_id = (newUser as any).insertId;
         await db.query('INSERT INTO Employees (nombre, apellidos, telefono, iban, nif, direccion, status, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [nombre, apellidos, telefono, iban, nif, direccion, 'activo', user_id]);
         return res.status(201).json({ message: 'Employee created' });
@@ -80,13 +80,13 @@ export const updateEmployee = async (req: Request, res: Response, next: NextFunc
 
         const hashedPwd = password ? await bcrypt.hash(password, 10) : undefined;
 
-        const [row] = await db.query<EmployeeRow[]>('SELECT nombre, apellidos, telefono, iban, nif, direccion, status, user_id FROM Employees WHERE id = ?', [id]);
+        const [row] = await db.query<EmployeeRow[]>('SELECT nombre, apellidos, telefono, iban, nif, direccion, status, user_id FROM employees WHERE id = ?', [id]);
         if(row.length === 0) {
             return res.status(404).json({ message: 'Employee not found' });
         }
         const user_id = row[0]?.user_id;
         await db.query('UPDATE Employees SET nombre = COALESCE(?, nombre), apellidos = COALESCE(?, apellidos), telefono = COALESCE(?, telefono), iban = COALESCE(?, iban), nif = COALESCE(?, nif), direccion = COALESCE(?, direccion), status = COALESCE(?, status) WHERE id = ?', [nombre, apellidos, telefono, iban, nif, direccion, status, id]);
-        await db.query('UPDATE Users SET email = COALESCE(?, email), password = COALESCE(?, password) WHERE id = ?', [email, hashedPwd, user_id]);
+        await db.query('UPDATE users SET email = COALESCE(?, email), password = COALESCE(?, password) WHERE id = ?', [email, hashedPwd, user_id]);
         return res.status(200).json({ message: 'Employee updated' });
     } catch (error) {
         next(error);
@@ -96,17 +96,17 @@ export const updateEmployee = async (req: Request, res: Response, next: NextFunc
 export const deleteEmployee = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
-        const [employeeRow] = await db.query<EmployeeRow[]>('SELECT nombre, apellidos, telefono, iban, nif, direccion, status, user_id FROM Employees WHERE id = ?', [id]);
+        const [employeeRow] = await db.query<EmployeeRow[]>('SELECT nombre, apellidos, telefono, iban, nif, direccion, status, user_id FROM employees WHERE id = ?', [id]);
         if (employeeRow.length === 0) {
             return res.status(404).json({ message: 'Employee not found' });
         }
         const user_id = employeeRow[0]?.user_id;
-        const [userRow] = await db.query<EmployeeRow[]>('SELECT email FROM Users WHERE id = ?', [user_id]);
+        const [userRow] = await db.query<EmployeeRow[]>('SELECT email FROM users WHERE id = ?', [user_id]);
         if(userRow.length === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
-        await db.query('DELETE FROM Employees WHERE id = ?', [id]);
-        await db.query('DELETE FROM Users WHERE id = ?', [user_id]);
+        await db.query('DELETE FROM employees WHERE id = ?', [id]);
+        await db.query('DELETE FROM users WHERE id = ?', [user_id]);
         return res.status(200).json({ message: 'Employee deleted successfully' });
     } catch (error) {
         next(error);

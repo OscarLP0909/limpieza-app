@@ -117,7 +117,7 @@ export default function NewWork() {
           </div>
 
           <div>
-            <label className="label">Frecuencia</label>
+            <label className="label">frecuencia</label>
             <select name="id_frecuencia" value={form.id_frecuencia} onChange={handleChange} className="input">
               <option value="">Selecciona la frecuencia...</option>
               {frequencies.map((f) => (

@@ -92,7 +92,7 @@ function WorkCard({ work, onStatusChange }: { work: Work; onStatusChange: () => 
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="font-semibold text-gray-900 dark:text-white text-sm">{work.tipo_servicio ?? `Servicio #${work.id_tipo_servicio}`}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{work.frecuencia ?? `Frecuencia #${work.id_frecuencia}`}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{work.frecuencia ?? `frecuencia #${work.id_frecuencia}`}</p>
           </div>
           <StatusBadge estado={work.estado} />
         </div>

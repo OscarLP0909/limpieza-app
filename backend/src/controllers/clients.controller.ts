@@ -18,9 +18,9 @@ export const getClients = async (req: Request, res: Response, next: NextFunction
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 10;
         const offset = (page - 1) * limit;
-        const [rows] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono, u.email FROM Clients c JOIN Users u on c.user_id = u.id LIMIT ? OFFSET ?', [limit, offset]);
+        const [rows] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono, u.email FROM clients c JOIN users u on c.user_id = u.id LIMIT ? OFFSET ?', [limit, offset]);
 
-        const [total] = await db.query<RowDataPacket[]>('SELECT COUNT(*) as total FROM Clients c JOIN Users u on c.user_id = u.id');
+        const [total] = await db.query<RowDataPacket[]>('SELECT COUNT(*) as total FROM clients c JOIN users u on c.user_id = u.id');
 
         return res.status(200).json({
             data: rows,
@@ -43,11 +43,11 @@ export const createClient = async (req: Request, res: Response, next: NextFuncti
             return res.status(400).json({ message: 'All fields are required' });
         }
         const hashedPwd = await bcrypt.hash(password, 10);
-        const [existUser] = await db.query<ClientRow[]>('SELECT email FROM Users WHERE email = ?', [email]);
+        const [existUser] = await db.query<ClientRow[]>('SELECT email FROM users WHERE email = ?', [email]);
         if (existUser.length > 0) {
             return res.status(400).json({ message: 'Email already exists' });
         }
-        const [newUser] = await db.query('INSERT INTO Users (email, password, role_id, type) VALUES (?, ?, ?, ?)', [email, hashedPwd, 4, 'client']);
+        const [newUser] = await db.query('INSERT INTO users (email, password, role_id, type) VALUES (?, ?, ?, ?)', [email, hashedPwd, 4, 'client']);
         const user_id = (newUser as any).insertId;
         await db.query('INSERT INTO Clients (nombre, apellidos, direccion, telefono, role_id, user_id) VALUES (?, ?, ?, ?, ?, ?)', [nombre, apellidos, direccion, telefono, 4, user_id]);
         return res.status(201).json({ message: 'Client and User created successfully' });
@@ -64,13 +64,13 @@ export const updateClient = async (req: Request, res: Response, next: NextFuncti
             return res.status(400).json({ message: 'At least one field is required' });
         }
         const hashedPwd = await bcrypt.hash(password, 10);
-        const [userRow] = await db.query<ClientRow[]>('SELECT email from Users WHERE email = ?', [email]);
+        const [userRow] = await db.query<ClientRow[]>('SELECT email FROM users WHERE email = ?', [email]);
         if (userRow.length === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
         const user_id = userRow[0]?.user_id;
-        await db.query('UPDATE Users SET email = COALESCE(?, email), password = COALESCE(?, password) WHERE id = ?', [email, hashedPwd, user_id]);
-        const [clientRow] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono FROM Clients c WHERE id = ?', [id]);
+        await db.query('UPDATE users SET email = COALESCE(?, email), password = COALESCE(?, password) WHERE id = ?', [email, hashedPwd, user_id]);
+        const [clientRow] = await db.query<ClientRow[]>('SELECT c.nombre, c.apellidos, c.direccion, c.telefono FROM clients c WHERE id = ?', [id]);
         if (clientRow.length === 0) {
             return res.status(404).json({ message: 'Client not found' });
         }
@@ -87,17 +87,17 @@ export const deleteClient = async (req: Request, res: Response, next: NextFuncti
         if (!id) {
             res.status(400).json({ message: 'ID invalid' });
         }
-        const [clientRow] = await db.query<ClientRow[]>('SELECT nombre, apellidos FROM Clients WHERE id = ?', [id]);
+        const [clientRow] = await db.query<ClientRow[]>('SELECT nombre, apellidos FROM clients WHERE id = ?', [id]);
         if (clientRow.length === 0) {
             res.status(404).json({ message: 'Client not found' });
         }
         const user_id = clientRow[0]?.user_id;
-        const [userRow] = await db.query<ClientRow[]>('SELECT email FROM Users where id = ?', [user_id]);
+        const [userRow] = await db.query<ClientRow[]>('SELECT email FROM users where id = ?', [user_id]);
         if (userRow.length === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
-        await db.query('DELETE FROM Users WHERE id = ?', user_id);
-        await db.query('DELETE FROM Clients WHERE id = ?', id);
+        await db.query('DELETE FROM users WHERE id = ?', user_id);
+        await db.query('DELETE FROM clients WHERE id = ?', id);
         return res.status(200).json({ message: 'Client deleted successfully' });
     } catch (error) {
         next(error);
