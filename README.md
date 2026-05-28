@@ -92,6 +92,21 @@ creado → revisando → presupuestado → aceptado → en_curso → finalizado
 
 ---
 
+## 🌐 Demo en producción
+
+🔗 [http://limpieza-app.duckdns.org](http://limpieza-app.duckdns.org)
+
+### Credenciales de prueba
+
+| Rol      | Email                  | Contraseña    |
+|----------|------------------------|---------------|
+| Admin    | admin@limpieza.com     | Admin1234!    |
+| Gestor   | gestor@limpieza.com    | Gestor1234!   |
+| Empleado | empleado@limpieza.com  | Empleado1234! |
+| Cliente  | cliente@limpieza.com   | Cliente1234!  |
+
+---
+
 ## 🚀 Instalación y uso
 
 ### Requisitos
@@ -160,7 +175,7 @@ npm run dev
 | GET    | `/clients`          | Listar clientes              | Admin, Gestor |
 | GET    | `/services`         | Listar servicios             | Admin         |
 
-Documentación completa disponible en `http://localhost:3000/api-docs`
+Documentación completa disponible en `/api-docs` — arranca el proyecto en local y accede a `http://localhost:3000/api-docs`
 
 ---
 
