@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Works from './pages/Works';
 import WorkDetail from './pages/WorkDetail';
 import NewWork from './pages/NewWork';
@@ -94,6 +95,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
         <Route path="/*" element={
           <ProtectedRoute>
             <AppLayout />

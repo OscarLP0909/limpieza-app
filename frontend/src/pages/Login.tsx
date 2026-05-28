@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -82,6 +82,13 @@ export default function Login() {
             </button>
           </form>
         </div>
+
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+          ¿No tienes cuenta?{' '}
+          <Link to="/register" className="text-blue-600 dark:text-blue-400 font-medium hover:underline">
+            Regístrate
+          </Link>
+        </p>
       </div>
     </div>
   );
