@@ -64,15 +64,15 @@ export default function AdminGestorDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { label: 'Total trabajos', value: totalWorks, color: 'blue' },
-          { label: 'Pendientes', value: pending.length, color: 'yellow' },
-          { label: 'Aceptados', value: accepted.length, color: 'green' },
-          { label: 'Cancel. solicit.', value: cancelRequested.length, color: 'orange' },
-          { label: 'Empleados', value: totalEmployees, color: 'purple' },
-          { label: 'Clientes', value: totalClients, color: 'indigo' },
+          { label: 'Total trabajos', value: totalWorks, cls: 'text-blue-600 dark:text-blue-300' },
+          { label: 'Pendientes', value: pending.length, cls: 'text-yellow-600 dark:text-yellow-300' },
+          { label: 'Aceptados', value: accepted.length, cls: 'text-green-600 dark:text-green-300' },
+          { label: 'Cancel. solicit.', value: cancelRequested.length, cls: 'text-orange-600 dark:text-orange-300' },
+          { label: 'Empleados', value: totalEmployees, cls: 'text-purple-600 dark:text-purple-300' },
+          { label: 'Clientes', value: totalClients, cls: 'text-indigo-600 dark:text-indigo-300' },
         ].map((stat) => (
           <div key={stat.label} className="card p-4">
-            <p className={`text-2xl font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.value}</p>
+            <p className={`text-2xl font-bold ${stat.cls}`}>{stat.value}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">{stat.label}</p>
           </div>
         ))}
